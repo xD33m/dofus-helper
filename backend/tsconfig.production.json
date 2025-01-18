@@ -1,0 +1,24 @@
+{
+	"compilerOptions": {
+		"rootDir": "./src/",
+		"module": "ESNext",
+		"moduleResolution": "node",
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"allowSyntheticDefaultImports": true,
+		"target": "ESNext",
+		"noImplicitAny": true,
+		"sourceMap": false,
+		"resolveJsonModule": true,
+		"forceConsistentCasingInFileNames": true,
+		"outDir": "./dist",
+		"baseUrl": ".",
+		"typeRoots": ["node_modules/@types"],
+		"experimentalDecorators": true,
+		"importHelpers": true,
+		"removeComments": true
+	},
+	"files": ["src/index.ts"],
+	"include": ["./**/*.ts"],
+	"exclude": ["node_modules", "dist"]
+}

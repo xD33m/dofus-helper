@@ -2,6 +2,8 @@ import type { ProgressInfo } from 'electron-updater'
 import { useCallback, useEffect, useState } from 'react'
 import Modal from '@/components/update/Modal'
 import Progress from '@/components/update/Progress'
+import { IoMdCloudDownload } from "react-icons/io";
+import { MdDownloading } from "react-icons/md";
 import './update.css'
 
 const Update = () => {
@@ -122,8 +124,8 @@ const Update = () => {
               )}
         </div>
       </Modal>
-      <button disabled={checking} onClick={checkUpdate}>
-        {checking ? 'Checking...' : 'Check update'}
+      <button className='checkUpdate' disabled={checking} onClick={checkUpdate}>
+        {checking ? <MdDownloading size={20} /> : <IoMdCloudDownload size={20}/>}
       </button>
     </>
   )

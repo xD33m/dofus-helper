@@ -1,0 +1,9 @@
+.header {
+    -webkit-app-region: drag;
+    background: rgb(47, 51, 60);
+    color: white;
+    overflow: hidden;
+    font-size: 13px;
+    text-align: center;
+    height: 20px;
+}

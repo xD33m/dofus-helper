@@ -22,3 +22,13 @@
     text-align: center;
   }
 }
+
+button {
+  background-color: transparent;
+  text-decoration: none;
+  border: none;
+  -webkit-app-region: no-drag;
+}
+button:hover {
+  cursor: pointer;
+}

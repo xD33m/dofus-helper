@@ -50,6 +50,8 @@ async function createWindow() {
     frame: false,
     resizable: true,
     transparent: true,
+    height: 200,
+    width: 400,
     webPreferences: {
       preload,
       // Warning: Enable nodeIntegration and disable contextIsolation is not secure in production
@@ -60,6 +62,8 @@ async function createWindow() {
       // contextIsolation: false,
     },
   })
+  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  win.setAlwaysOnTop(true, 'screen-saver', 1);
 
   if (VITE_DEV_SERVER_URL) { // #298
     win.loadURL(VITE_DEV_SERVER_URL)

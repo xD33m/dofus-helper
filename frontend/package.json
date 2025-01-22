@@ -19,6 +19,7 @@
     "pretest": "vite build --mode=test"
   },
   "dependencies": {
+    "dexie": "^4.0.11",
     "electron-updater": "^6.3.9",
     "react-icons": "^5.4.0"
   },

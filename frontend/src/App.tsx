@@ -1,28 +1,16 @@
-// import { useState } from 'react'
-import UpdateElectron from '@/components/update'
-// import logoVite from './assets/logo-vite.svg'
-// import logoElectron from './assets/logo-electron.svg'
 import './App.css'
 import Overlay from './components/overlay/overlay.js'
+import { useEffect } from 'react';
+import { initializeDB } from './db/translationDatabase.js';
 
 function App() {
-  // const [count, setCount] = useState(0)
+  useEffect(() => {
+    initializeDB()
+      .then(() => console.log("DB Initialized"))
+      .catch(console.error);
+  }, []);
   return (
     <Overlay />
-    // <div className='App'>
-    //   <div className='logo-box'>
-    //     <a>
-    //       <img src={logoVite} className='logo vite' alt='Electron + Vite logo' />
-    //       <img src={logoElectron} className='logo electron' alt='Electron + Vite logo' />
-    //     </a>
-    //   </div>
-    //   <h1>Dofus Helper</h1>
-    //   <div className='card'>
-    //     <button onClick={() => setCount((count) => count + 1)}>
-    //       count is {count}
-    //     </button>
-    //   </div>
-    // </div>
   )
 }
 

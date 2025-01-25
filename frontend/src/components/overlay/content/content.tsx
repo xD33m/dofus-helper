@@ -22,6 +22,11 @@ const Content = () => {
     setSearchTerm(e.target.value);
   };
 
+  const copyToClipboard = (e: React.MouseEvent<HTMLParagraphElement>) => {
+    navigator.clipboard.writeText(e.currentTarget.innerText);
+    setSearchTerm('');
+  };
+
   const limitedResults = searchResults.slice(0, 5);
 
   return (
@@ -44,8 +49,11 @@ const Content = () => {
 
         {limitedResults.map((entry) => (
           <div className="translation-item" key={entry.id}>
-            <p className="german-text">{entry.de}</p>
-            <p className="french-text">{entry.fr}</p>
+            <img className="icon" src={`https://api.dofusdb.fr/img/items/${entry.icon}.png`} />
+            <div className='translations'>
+              <p className="german-text" onClick={copyToClipboard}>{entry.de}</p>
+              <p className="french-text">{entry.fr}</p>
+            </div>
           </div>
         ))}
       </div>

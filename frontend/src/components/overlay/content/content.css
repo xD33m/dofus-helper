@@ -44,6 +44,8 @@
 
 .translation-item {
   margin-bottom: 10px;
+  display: flex;
+  gap: 10px;
 }
 
 .german-text {
@@ -52,8 +54,18 @@
   font-weight: 500;
 }
 
+.german-text:hover {
+  cursor: pointer;
+  color: #ab51ff;
+}
+
 .french-text {
   color: #ccc;
   margin: 0;
   font-size: 0.9em;
+}
+
+.icon {
+  width: 30px;
+  object-fit: contain;
 }

@@ -8,6 +8,7 @@ export interface TranslationJSON {
     [id: string]: {
       fr: string;
       de: string;
+      icon: number;
     };
   };
   languages: string[];
@@ -16,6 +17,7 @@ export interface TranslationEntry {
   id?: string;
   fr: string;
   de: string;
+  icon: number;
 }
 
 
@@ -26,7 +28,7 @@ class TranslationDB extends Dexie {
     super('TranslationDB');
 
     this.version(1).stores({
-      translations: 'id, fr, de', 
+      translations: 'id, fr, de, icon', 
     });
   }
 }
@@ -40,6 +42,7 @@ export async function initializeDB() {
       id,
       fr: entry.fr,
       de: entry.de,
+      icon: entry.icon,
     })
   );
 
@@ -51,7 +54,7 @@ export async function initializeDB() {
 export async function searchFrench(term: string): Promise<TranslationEntry[]> {
     return db.translations
       .filter((item) => 
-        item.fr.toLowerCase().includes(term.toLowerCase())
+        item.fr.toLowerCase().includes(term.toLowerCase().trim())
       )
       .toArray();
 }
@@ -60,7 +63,7 @@ export async function searchFrench(term: string): Promise<TranslationEntry[]> {
 export async function prefixSearchFrench(term: string): Promise<TranslationEntry[]> {
   return db.translations
     .where('fr')
-    .startsWithIgnoreCase(term)
+    .startsWithIgnoreCase(term.trim())
     .toArray();
 }
 

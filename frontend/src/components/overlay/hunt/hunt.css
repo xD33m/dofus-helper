@@ -1,24 +1,30 @@
-.dpad-container {
+.hunt-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 1px;
+  background-color: #1e1e2f; /* Dark background */
+}
+
+.dpad-container {
+  padding: 15px 0;
 }
 
 .dpad-row {
   display: flex;
   justify-content: center;
-  gap: 10px;
+  gap: 1px;
 }
 
 .dpad-button {
   background: none;
+  color: #e0e0e0; /* Light text */
   border: none;
   cursor: pointer;
 }
 
 .dpad-center {
-  width: 20px;
+  visibility: hidden;
 }
 
 .coordinates {
@@ -28,16 +34,44 @@
 }
 
 .coordinates input {
-  width: 60px;
-  padding: 5px;
+  width: 70px;
+  padding: 8px;
   text-align: center;
+  background-color: #1e1e2f; /* Dark background */
+  border: 1px solid #3e3e58; /* Darker border */
+  border-radius: 8px;
+  color: #e0e0e0; /* Light text */
+  font-size: 16px;
+  letter-spacing: 1.5px;
+  font-weight: 500;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.coordinates input:focus {
+  border-color: #ffd194; /* Light border color when focused */
 }
 
 input[type="text"] {
-  padding: 5px;
+  padding: 8px;
   font-size: 12px;
-  /* margin-top: 10px; */
   width: 200px;
+  background-color: #1e1e2f; /* Dark background */
+  border: 1px solid #3e3e58; /* Darker border */
+  border-radius: 8px;
+  color: #e0e0e0; /* Light text */
+  letter-spacing: 1.5px;
+  font-weight: 500;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+input[type="text"]:focus {
+  border-color: #ffd194; /* Light border color when focused */
+}
+
+input::placeholder {
+  color: #77777a; /* Slightly lighter placeholder text */
 }
 
 .dpad-button.active {
@@ -48,12 +82,16 @@ input[type="text"] {
   position: absolute;
   max-height: 150px;
   overflow-y: auto;
-  /* background-color: white; */
-  border: 1px solid #ccc;
+  font-size: 12px;
+  color: #e0e0e0; /* Light text */
   padding: 5px;
   margin-top: 5px;
   list-style-type: none;
-  /* width: 200px; */
+  background-color: #1e1e2f; /* Dark background */
+
+  /* minmal scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: #3e3e58 #1e1e2f;
 }
 
 .clue-dropdown li {
@@ -63,4 +101,29 @@ input[type="text"] {
 
 .clue-dropdown li:hover {
   background-color: #292929;
+}
+
+.selected-clue-details {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #1e1e2f; /* Dark background */
+  border-radius: 8px;
+  padding: 12px 18px;
+  font-size: 16px;
+  letter-spacing: 1.5;
+  font-weight: 500;
+  color: #e0e0e0; /* Light text for readability */
+  gap: 10px; /* Space between text and icons */
+  margin-bottom: 10px;
+}
+
+.selected-clue-details span {
+  display: flex;
+  align-items: center;
+}
+
+.selected-clue-details .direction-icon {
+  font-size: 22px;
+  color: #ffd194; /* Matches the border color */
 }

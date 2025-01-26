@@ -65,26 +65,22 @@ function getCluesInDirectionWithMetadata(
       // Determine if the position is in the specified direction within the radius
       switch (direction) {
         case "up":
-          // Only consider positions above the current y (yPos <= y) and within the radius (moving upwards)
-          if (xPos === x && yPos >= y && Math.abs(yPos - y) <= radius) {
+          if (xPos === x && yPos > y && Math.abs(yPos - y) <= radius) {
             isValidPosition = true;
           }
           break;
         case "down":
-          // Only consider positions below the current y (yPos >= y) and within the radius (moving downwards)
-          if (xPos === x && yPos <= y && Math.abs(yPos - y) <= radius) {
+          if (xPos === x && yPos < y && Math.abs(yPos - y) <= radius) {
             isValidPosition = true;
           }
           break;
         case "left":
-          // Only consider positions left of the current x (xPos <= x) and within the radius (moving left)
-          if (yPos === y && xPos <= x && Math.abs(xPos - x) <= radius) {
+          if (yPos === y && xPos < x && Math.abs(xPos - x) <= radius) {
             isValidPosition = true;
           }
           break;
         case "right":
-          // Only consider positions right of the current x (xPos >= x) and within the radius (moving right)
-          if (yPos === y && xPos >= x && Math.abs(xPos - x) <= radius) {
+          if (yPos === y && xPos > x && Math.abs(xPos - x) <= radius) {
             isValidPosition = true;
           }
           break;
@@ -96,6 +92,11 @@ function getCluesInDirectionWithMetadata(
           const clueName = ClueNamesMap.get(clueId);
           if (clueName) {
             const distance = Math.sqrt(Math.pow(xPos - x, 2) + Math.pow(yPos - y, 2));
+
+            // Exclude the current coordinates
+            if (distance === 0) {
+              return;
+            }
 
             // If the clue name already exists, compare the distances and keep the closest one
             const existingClue = clueMetadataInDirection.get(clueName);

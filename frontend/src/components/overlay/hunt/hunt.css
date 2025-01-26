@@ -1,0 +1,66 @@
+.dpad-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.dpad-row {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.dpad-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.dpad-center {
+  width: 20px;
+}
+
+.coordinates {
+  display: flex;
+  gap: 10px;
+  margin-top: 30px;
+}
+
+.coordinates input {
+  width: 60px;
+  padding: 5px;
+  text-align: center;
+}
+
+input[type="text"] {
+  padding: 5px;
+  font-size: 12px;
+  /* margin-top: 10px; */
+  width: 200px;
+}
+
+.dpad-button.active {
+  color: #ffd194;
+}
+
+.clue-dropdown {
+  position: absolute;
+  max-height: 150px;
+  overflow-y: auto;
+  /* background-color: white; */
+  border: 1px solid #ccc;
+  padding: 5px;
+  margin-top: 5px;
+  list-style-type: none;
+  /* width: 200px; */
+}
+
+.clue-dropdown li {
+  padding: 5px;
+  cursor: pointer;
+}
+
+.clue-dropdown li:hover {
+  background-color: #292929;
+}

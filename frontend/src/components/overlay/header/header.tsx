@@ -1,11 +1,22 @@
-import './header.css';
+import "./header.css";
 import { FaSearch } from "react-icons/fa";
 
-const Header = () => {
+type HeaderProps = {
+  isSearch: boolean;
+  setIsSearch: (isSearch: boolean) => void;
+};
+
+const Header = ({ isSearch, setIsSearch }: HeaderProps) => {
+  const handleChange = () => {
+    console.log("handleChange");
+    setIsSearch(!isSearch);
+  };
+
   return (
     <div className="header">
-        <FaSearch className="search-icon-header" size={12} />
-        DOFUS HELPER
+      <FaSearch className="search-icon-header" size={12} />
+      DOFUS HELPER
+      <input type="checkbox" checked={isSearch} onChange={handleChange} />
     </div>
   );
 };

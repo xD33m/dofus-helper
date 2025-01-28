@@ -49,68 +49,74 @@ type ClueMetadata = {
   distance: number;
 };
 
+/**
+ * Returns clues found within 10 steps of (x, y) in a single direction.
+ * (Excludes the starting position itself.)
+ */
 function getCluesInDirectionWithMetadata(
   x: number,
   y: number,
-  direction: "up" | "down" | "left" | "right",
-  radius: number = 10
+  direction: "up" | "down" | "left" | "right"
 ): ClueMetadata[] {
-  const clueMetadataInDirection: Map<string, ClueMetadata> = new Map(); // Keyed by clue name to track the closest clue
+  // A map from clueName -> the closest ClueMetadata
+  const cluesByName = new Map<string, ClueMetadata>();
 
-  // Iterate over all positions in CluesPosMap
-  CluesPosMap.forEach((rowMap, xPos) => {
-    rowMap.forEach((clueIds, yPos) => {
-      let isValidPosition = false;
+  let stepX = 0;
+  let stepY = 0;
 
-      // Determine if the position is in the specified direction within the radius
-      switch (direction) {
-        case "up":
-          if (xPos === x && yPos > y && Math.abs(yPos - y) <= radius) {
-            isValidPosition = true;
-          }
-          break;
-        case "down":
-          if (xPos === x && yPos < y && Math.abs(yPos - y) <= radius) {
-            isValidPosition = true;
-          }
-          break;
-        case "left":
-          if (yPos === y && xPos < x && Math.abs(xPos - x) <= radius) {
-            isValidPosition = true;
-          }
-          break;
-        case "right":
-          if (yPos === y && xPos > x && Math.abs(xPos - x) <= radius) {
-            isValidPosition = true;
-          }
-          break;
-      }
+  switch (direction) {
+    case "up":
+      stepY = -1;
+      break;
+    case "down":
+      stepY = 1;
+      break;
+    case "left":
+      stepX = -1;
+      break;
+    case "right":
+      stepX = 1;
+      break;
+  }
 
-      // If position is valid for the given direction, add the clue names and metadata
-      if (isValidPosition) {
-        clueIds.forEach((clueId) => {
-          const clueName = ClueNamesMap.get(clueId);
-          if (clueName) {
-            const distance = Math.sqrt(Math.pow(xPos - x, 2) + Math.pow(yPos - y, 2));
+  // Up to 10 steps in that direction
+  for (let i = 1; i <= 10; i++) {
+    const newX = x + stepX * i;
+    const newY = y + stepY * i;
 
-            // Exclude the current coordinates
-            if (distance === 0) {
-              return;
-            }
+    // Check if we have a row for newX
+    const rowMap = CluesPosMap.get(newX);
+    if (!rowMap) continue;
 
-            // If the clue name already exists, compare the distances and keep the closest one
-            const existingClue = clueMetadataInDirection.get(clueName);
-            if (!existingClue || distance < existingClue.distance) {
-              clueMetadataInDirection.set(clueName, { name: clueName, xPos, yPos, distance });
-            }
-          }
+    // Check if we have any clue IDs for newY
+    const clueIds = rowMap.get(newY);
+    if (!clueIds) continue;
+
+    for (const clueId of clueIds) {
+      const clueName = ClueNamesMap.get(clueId);
+      if (!clueName) continue;
+
+      // Euclidean distance, or you can treat "i" as the distance in a grid sense
+      const distance = Math.sqrt((newX - x) ** 2 + (newY - y) ** 2);
+      if (distance === 0) continue; // exclude the starting position
+
+      const existing = cluesByName.get(clueName);
+      if (!existing || distance < existing.distance) {
+        // either this clueName hasn't been stored yet or this new one is closer
+        cluesByName.set(clueName, {
+          name: clueName,
+          xPos: newX,
+          yPos: newY,
+          distance,
         });
       }
-    });
-  });
+    }
+  }
 
-  // Return the list of closest clues
-  return Array.from(clueMetadataInDirection.values());
+  // Convert the map to an array and sort
+  const uniqueClues = Array.from(cluesByName.values());
+  uniqueClues.sort((a, b) => a.name.localeCompare(b.name));
+  return uniqueClues;
 }
 
 export { loadClueData, CluesPosMap, ClueNamesMap, getCluesInDirectionWithMetadata };

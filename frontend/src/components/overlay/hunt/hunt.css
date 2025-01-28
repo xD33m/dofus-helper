@@ -1,45 +1,30 @@
+/* Container holding everything */
 .hunt-container {
+  position: relative; /* so it can contain absolutely positioned children */
+  min-width: 300px;
+  min-height: 100px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
-  background-color: #1e1e2f; /* Dark background */
+  background-color: #2f3146a2; /* Dark background */
+  /* your existing background-color, etc. */
 }
 
-.dpad-container {
-  padding: 15px 0;
-}
-
-.dpad-row {
-  display: flex;
-  justify-content: center;
-  gap: 1px;
-}
-
-.dpad-button {
-  background: none;
-  color: #e0e0e0; /* Light text */
-  border: none;
-  cursor: pointer;
-}
-
-.dpad-center {
-  visibility: hidden;
-}
-
+/* Coordinates container */
 .coordinates {
   display: flex;
   gap: 10px;
   margin-top: 30px;
 }
 
+/* Coordinate inputs (X/Y) */
 .coordinates input {
   width: 70px;
-  padding: 8px;
+  padding: 5px;
   text-align: center;
-  background-color: #1e1e2f; /* Dark background */
-  border: 1px solid #3e3e58; /* Darker border */
-  border-radius: 8px;
+  background-color: #2f3146a2; /* Dark background */
+  border: 1px solid #3e3e58;
+  border-radius: 1px;
   color: #e0e0e0; /* Light text */
   font-size: 16px;
   letter-spacing: 1.5px;
@@ -47,83 +32,149 @@
   outline: none;
   transition: all 0.3s ease;
 }
-
 .coordinates input:focus {
-  border-color: #ffd194; /* Light border color when focused */
+  border-color: #b6b3e6a6; /* Light border color when focused */
 }
 
-input[type="text"] {
+/* D-Pad container */
+.dpad-container {
+  padding: 15px 0;
+}
+.dpad-row {
+  display: flex;
+  justify-content: center;
+  gap: 1px;
+}
+.dpad-button {
+  background: none;
+  color: #e0e0e0; /* Light text */
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px; /* optional small padding for click area */
+}
+.dpad-button.active {
+  color: #ffd194; /* Highlight active arrow */
+}
+.dpad-center {
+  visibility: hidden; /* Just a spacer in the middle */
+}
+
+/* Shared styling for all text inputs (including the fuzzy-search input) */
+.clue-input {
   padding: 8px;
   font-size: 12px;
-  width: 200px;
-  background-color: #1e1e2f; /* Dark background */
-  border: 1px solid #3e3e58; /* Darker border */
-  border-radius: 8px;
+  width: 100%;
+  background-color: #2f3146a2; /* Dark background */
+  border: 1px solid #e0e0e036; /* Darker border */
+  border-radius: 1px;
   color: #e0e0e0; /* Light text */
   letter-spacing: 1.5px;
   font-weight: 500;
   outline: none;
   transition: all 0.3s ease;
 }
-
-input[type="text"]:focus {
-  border-color: #ffd194; /* Light border color when focused */
+.clue-input:focus {
+  border-color: #b6b3e6a6;
 }
-
-input::placeholder {
+.clue-input::placeholder {
   color: #77777a; /* Slightly lighter placeholder text */
 }
 
-.dpad-button.active {
-  color: #ffd194;
+/* "No more clues" message, if any */
+.no-clues-message {
+  margin: 10px;
+  color: #ffd194; /* or a warning color */
+  font-weight: 500;
 }
 
-.clue-dropdown {
-  position: absolute;
-  max-height: 150px;
-  overflow-y: auto;
-  font-size: 12px;
-  color: #e0e0e0; /* Light text */
-  padding: 5px;
-  margin-top: 5px;
-  list-style-type: none;
-  background-color: #1e1e2f; /* Dark background */
-
-  /* minmal scrollbar */
-  scrollbar-width: thin;
-  scrollbar-color: #3e3e58 #1e1e2f;
-}
-
-.clue-dropdown li {
-  padding: 5px;
-  cursor: pointer;
-}
-
-.clue-dropdown li:hover {
-  background-color: #292929;
-}
-
+/* Selected clue details (shown after selecting a clue) */
 .selected-clue-details {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: #1e1e2f; /* Dark background */
-  border-radius: 8px;
-  padding: 12px 18px;
+  background-color: #1e1e2f69; /* Dark background */
+  border-radius: 3px;
+  padding: 6px 9px;
   font-size: 16px;
-  letter-spacing: 1.5;
+  text-align: center;
+  letter-spacing: 1.5px;
   font-weight: 500;
-  color: #e0e0e0; /* Light text for readability */
-  gap: 10px; /* Space between text and icons */
+  color: #e0e0e0; /* Light text */
+  gap: 10px;
   margin-bottom: 10px;
 }
-
 .selected-clue-details span {
   display: flex;
   align-items: center;
 }
-
 .selected-clue-details .direction-icon {
   font-size: 22px;
-  color: #ffd194; /* Matches the border color */
+  color: #ffd194; /* Highlight color */
+}
+
+.selected-coordinates {
+  color: #ffd194;
+  font-weight: 700;
+}
+
+/* ---------------------------
+   Downshift dropdown styling
+   --------------------------- */
+
+.input-container {
+  position: relative;
+  margin-bottom: 20px;
+  width: 100%;
+  max-width: 210px;
+}
+
+/* The UL that Downshift renders */
+.clue-dropdown {
+  /* Absolutely positioned so it can float over other content */
+  position: relative;
+  /* top: calc(100% + 2px); Just below the input */
+  /* left: 0; */
+  /* width: calc(100% - 20px); match the input width minus margins, or set to 100% if you prefer */
+  width: 100%;
+  z-index: 1000;
+
+  margin: 0;
+  padding: 0;
+  list-style-type: none;
+
+  max-height: 150px; /* or 200px, up to you */
+  overflow-y: auto;
+
+  /* background-color: #2f3146a2; Dark background */
+  /* border: 1px solid #3e3e58; */
+  border-radius: 1px;
+  font-size: 12px;
+  color: #e0e0e0; /* Light text */
+
+  /* Custom scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: #9d9bc6 #3c3d493d;
+}
+.clue-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+.clue-dropdown::-webkit-scrollbar-track {
+  background: #1e1e2f;
+}
+.clue-dropdown::-webkit-scrollbar-thumb {
+  background-color: #3e3e58;
+  border-radius: 3px;
+}
+
+/* Each LI in the dropdown */
+.clue-dropdown li {
+  padding: 5px;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Hover or "highlightedIndex === index" in Downshift */
+.clue-dropdown li:hover,
+.clue-dropdown li.selected {
+  background-color: #46496fb2;
 }

@@ -65,19 +65,29 @@ async function createWindow() {
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   win.setAlwaysOnTop(true, "screen-saver", 1);
 
-  globalShortcut.register("Up", () => {
+  win.webContents.openDevTools();
+
+  globalShortcut.register("CommandOrControl+Up", () => {
+    if (!win) return;
+    win.focus();
     win?.webContents.send("key-press", "up");
   });
 
-  globalShortcut.register("Down", () => {
+  globalShortcut.register("CommandOrControl+Down", () => {
+    if (!win) return;
+    win.focus();
     win?.webContents.send("key-press", "down");
   });
 
-  globalShortcut.register("Left", () => {
+  globalShortcut.register("CommandOrControl+Left", () => {
+    if (!win) return;
+    win.focus();
     win?.webContents.send("key-press", "left");
   });
 
-  globalShortcut.register("Right", () => {
+  globalShortcut.register("CommandOrControl+Right", () => {
+    if (!win) return;
+    win.focus();
     win?.webContents.send("key-press", "right");
   });
 
@@ -143,5 +153,14 @@ ipcMain.handle("open-win", (_, arg) => {
     childWindow.loadURL(`${VITE_DEV_SERVER_URL}#${arg}`);
   } else {
     childWindow.loadFile(indexHtml, { hash: arg });
+  }
+});
+
+ipcMain.on("resize-window", (event, { width, height }) => {
+  if (win) {
+    // Adjust the BrowserWindow size.
+    // Optionally add some offsets if you have any padding or window frame.
+    win.setSize(width, height);
+    // win.setMinimumSize(width, height);
   }
 });

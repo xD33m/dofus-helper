@@ -35,7 +35,7 @@ const Hunt: React.FC = () => {
   // -----------------------------------------------------
   useEffect(() => {
     // Load your clue data
-    loadClueData("de");
+    loadClueData("fr");
 
     // Listen for arrow key presses from main process (if you are using them)
     if (window?.ipcRenderer) {
@@ -46,28 +46,6 @@ const Hunt: React.FC = () => {
         inputRef.current?.focus();
       });
     }
-
-    // ResizeObserver to auto-resize the Electron window
-    const ro = new ResizeObserver((entries) => {
-      for (let entry of entries) {
-        const { width, height } = entry.contentRect;
-        window.ipcRenderer?.send("resize-window", {
-          width: Math.round(width),
-          height: Math.round(height),
-        });
-      }
-    });
-
-    if (containerRef.current) {
-      ro.observe(containerRef.current);
-    }
-    // return () => {
-    // if (containerRef.current) {
-    //   ro.unobserve(containerRef.current);
-    // }
-    // Also remove the IPC listener to avoid leaks
-    // window.ipcRenderer?.removeAllListeners("key-press");
-    // };
   }, []);
 
   // -----------------------------------------------------

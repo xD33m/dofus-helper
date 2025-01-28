@@ -161,6 +161,6 @@ ipcMain.on("resize-window", (event, { width, height }) => {
     // Adjust the BrowserWindow size.
     // Optionally add some offsets if you have any padding or window frame.
     win.setSize(width, height);
-    // win.setMinimumSize(width, height);
+    // win.setMinimumSize(100, 100);
   }
 });

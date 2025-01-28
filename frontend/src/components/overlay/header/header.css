@@ -1,14 +1,19 @@
 .header {
-    -webkit-app-region: drag;
-    background: rgba(62, 64, 90, 0.506);
-    color: white;
-    overflow: hidden;
-    font-size: 13px;
-    height: 20px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 5px;
-    position: fixed;
-    width: 100%;
+  -webkit-app-region: drag;
+  background: rgba(62, 64, 90, 0.506);
+  color: white;
+  overflow: hidden;
+  font-size: 13px;
+  height: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  position: fixed;
+  width: 100%;
+  z-index: 1;
+}
+
+input[type="checkbox"] {
+  -webkit-app-region: no-drag;
 }

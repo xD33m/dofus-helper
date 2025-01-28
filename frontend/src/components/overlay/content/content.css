@@ -1,6 +1,6 @@
 .content {
   background: rgba(34, 33, 43, 0.6);
-  min-height: 100px; 
+  min-height: 100px;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;

@@ -91,6 +91,7 @@
 .selected-clue-details {
   display: flex;
   align-items: center;
+  flex-direction: column;
   justify-content: space-between;
   background-color: #1e1e2f69; /* Dark background */
   border-radius: 3px;
@@ -177,4 +178,13 @@
 .clue-dropdown li:hover,
 .clue-dropdown li.selected {
   background-color: #46496fb2;
+}
+
+.selected-destination {
+  gap: 10px;
+}
+
+.selected-clue-name {
+  font-weight: 500;
+  font-size: small;
 }

@@ -30,7 +30,7 @@ const Hunt: React.FC = () => {
   const [cluesInDirection, setCluesInDirection] = useState<any[]>([]);
   const [filteredClues, setFilteredClues] = useState<any[]>([]);
   const [selectedClueDetails, setSelectedClueDetails] = useState<any>(null);
-  const [noCluesMessage, setNoCluesMessage] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -72,11 +72,11 @@ const Hunt: React.FC = () => {
     setFilteredClues(newClues);
 
     if (newClues.length === 0) {
-      setNoCluesMessage(true);
+      setErrorMessage("No clues in this direction");
       setSelectedClueDetails(null);
-      setTimeout(() => setNoCluesMessage(false), 3000);
+      setTimeout(() => setErrorMessage(""), 4000);
     } else {
-      setNoCluesMessage(false);
+      setErrorMessage("");
     }
   }, [activeDirection, coordinates]);
 
@@ -109,11 +109,15 @@ const Hunt: React.FC = () => {
         .then((ocrString) => {
           console.log("🔠 OCR Text:", ocrString);
 
-          const clue = matchClues(ocrString, cluesInDir);
+          const { clue, error } = matchClues(ocrString, cluesInDir);
 
-          if (clue) {
+          if (Boolean(clue)) {
             console.log("🔍 Clue Detected:", clue);
             handleSelectClue(clue, { clearSelection: () => {} });
+          } else if (error) {
+            setErrorMessage(error);
+            setSelectedClueDetails(null);
+            setTimeout(() => setErrorMessage(""), 4000);
           }
         });
 
@@ -163,14 +167,13 @@ const Hunt: React.FC = () => {
       clue: selectedClue.name,
     });
 
-    console.log("🎯 Selected Clue:", selectedClue);
     setCoordinates({ x: selectedClue.xPos.toString(), y: selectedClue.yPos.toString() });
     setActiveDirection(null);
 
     setTimeout(() => {
       downshiftHelpers.clearSelection();
       setSelectedClueDetails(null);
-    }, 3000);
+    }, 4000);
   };
 
   return (
@@ -226,15 +229,17 @@ const Hunt: React.FC = () => {
         </div>
       </div>
 
-      {noCluesMessage ? (
-        <div className="no-clues-message">No more clues in this direction</div>
+      {errorMessage ? (
+        <div className="no-clues-message">{errorMessage}</div>
       ) : (
         selectedClueDetails && (
           <div className="selected-clue-details">
-            <span>{selectedClueDetails.clue}</span>
-            <span className="direction-icon">{selectedClueDetails.direction}</span>
-            <span>{selectedClueDetails.distance}</span>
-            <span className="selected-coordinates">{selectedClueDetails.coordinates}</span>
+            <span className="selected-clue-name">{selectedClueDetails.clue}</span>
+            <span className="selected-destination">
+              <span className="direction-icon">{selectedClueDetails.direction}</span>
+              <span>{selectedClueDetails.distance}</span>
+              <span className="selected-coordinates">{selectedClueDetails.coordinates}</span>
+            </span>
           </div>
         )
       )}

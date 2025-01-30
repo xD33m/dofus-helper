@@ -9,7 +9,10 @@ type CluesInDirection = {
   yPos: number;
 }[];
 
-export function matchClues(ocrString: string, directionClues: CluesInDirection): any | null {
+export function matchClues(
+  ocrString: string,
+  directionClues: CluesInDirection
+): { clue: any | null; error: string | null } {
   const linesArr = ocrString
     .split("\n")
     .map((l) => normalizeUnicodeText(l.trim())) // Normalize OCR output
@@ -22,7 +25,7 @@ export function matchClues(ocrString: string, directionClues: CluesInDirection):
         line
           .toLowerCase()
           .replace(/œ/g, "oe") // Convert "œ" to "oe"
-          .replace(/\b(encourrs|enesues|en cours|encours|encours q)\b/gi, "") // Remove "encours" and "encours q"
+          .replace(/\b(ex cours|encourrs|enesues|en cours|encours|encours q)\b/gi, "") // Remove "encours" and "encours q"
           .replace(/\bq\b/gi, "") // Remove any leftover standalone "q"
           .replace(/\b\d+\b/g, "") // Remove standalone numbers
           .replace(/[^a-z\s]/gi, "") // Remove special characters
@@ -52,7 +55,7 @@ export function matchClues(ocrString: string, directionClues: CluesInDirection):
     keys: ["normalizedName"],
     threshold: 0.5, // Lower = stricter matching
     includeScore: true,
-    minMatchCharLength: 4,
+    minMatchCharLength: 3,
   });
 
   let lastValidClueText: string | null = null;
@@ -71,7 +74,7 @@ export function matchClues(ocrString: string, directionClues: CluesInDirection):
     }
   }
 
-  if (!lastValidClueText) return null; // If no valid clue is found, return null
+  if (!lastValidClueText) return { clue: null, error: "No valid clue found on screen" }; // If no valid clue is found, return null
 
   // Step 5: Match the last valid clue against the `directionClues` list
   const normalizedDirectionClues = directionClues.map((clue) => ({
@@ -91,9 +94,9 @@ export function matchClues(ocrString: string, directionClues: CluesInDirection):
 
   if (finalMatch) {
     console.log("🎯 Matched Clue in Direction:", finalMatch);
-    return finalMatch; // Return the found clue
+    return { clue: finalMatch, error: null }; // Return the found clue
   }
 
   console.log("❌ No matching clue found in direction clues");
-  return null;
+  return { clue: null, error: `${lastValidClueText} was not found in this direction` };
 }

@@ -61,6 +61,8 @@ function getCluesInDirectionWithMetadata(
   // A map from clueName -> the closest ClueMetadata
   const cluesByName = new Map<string, ClueMetadata>();
 
+  console.log(`Searching for clues in direction ${direction} from (${x}, ${y})`);
+
   let stepX = 0;
   let stepY = 0;
 
@@ -119,4 +121,8 @@ function getCluesInDirectionWithMetadata(
   return uniqueClues;
 }
 
-export { loadClueData, CluesPosMap, ClueNamesMap, getCluesInDirectionWithMetadata };
+function getAllClues(): string[] {
+  return Array.from(ClueNamesMap.values());
+}
+
+export { loadClueData, CluesPosMap, ClueNamesMap, getCluesInDirectionWithMetadata, getAllClues };

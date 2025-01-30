@@ -3,30 +3,33 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import os from "node:os";
+import { Worker } from "worker_threads";
 import { update } from "./update";
+import Tesseract, { createWorker } from "tesseract.js";
+import sharp from "sharp";
+import screenshotDesktop from "screenshot-desktop";
+import pkg from "normalize-unicode-text";
+
+const { normalizeUnicodeText } = pkg;
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// The built directory structure
-//
-// ├─┬ dist-electron
-// │ ├─┬ main
-// │ │ └── index.js    > Electron-Main
-// │ └─┬ preload
-// │   └── index.mjs   > Preload-Scripts
-// ├─┬ dist
-// │ └── index.html    > Electron-Renderer
-//
-process.env.APP_ROOT = path.join(__dirname, "../..");
+// Set up paths
+const MAIN_DIST = path.join(__dirname, "../dist-electron");
+const RENDERER_DIST = path.join(__dirname, "../dist");
+const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
+const preload = path.join(__dirname, "../preload/index.mjs");
+const indexHtml = path.join(RENDERER_DIST, "index.html");
 
-export const MAIN_DIST = path.join(process.env.APP_ROOT, "dist-electron");
-export const RENDERER_DIST = path.join(process.env.APP_ROOT, "dist");
-export const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
+// Application state
+let win: BrowserWindow | null = null;
 
-process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
-  ? path.join(process.env.APP_ROOT, "public")
-  : RENDERER_DIST;
+// Application setup
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+  process.exit(0);
+}
 
 // Disable GPU Acceleration for Windows 7
 if (os.release().startsWith("6.1")) app.disableHardwareAcceleration();
@@ -34,19 +37,10 @@ if (os.release().startsWith("6.1")) app.disableHardwareAcceleration();
 // Set application name for Windows 10+ notifications
 if (process.platform === "win32") app.setAppUserModelId(app.getName());
 
-if (!app.requestSingleInstanceLock()) {
-  app.quit();
-  process.exit(0);
-}
-
-let win: BrowserWindow | null = null;
-const preload = path.join(__dirname, "../preload/index.mjs");
-const indexHtml = path.join(RENDERER_DIST, "index.html");
-
 async function createWindow() {
   win = new BrowserWindow({
     title: "Main window",
-    icon: path.join(process.env.VITE_PUBLIC, "favicon.ico"),
+    icon: path.join(RENDERER_DIST, "favicon.ico"),
     frame: false,
     resizable: true,
     transparent: true,
@@ -54,68 +48,90 @@ async function createWindow() {
     width: 400,
     webPreferences: {
       preload,
-      // Warning: Enable nodeIntegration and disable contextIsolation is not secure in production
-      // nodeIntegration: true,
-
-      // Consider using contextBridge.exposeInMainWorld
-      // Read more on https://www.electronjs.org/docs/latest/tutorial/context-isolation
-      // contextIsolation: false,
+      contextIsolation: true,
     },
   });
+
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   win.setAlwaysOnTop(true, "screen-saver", 1);
-
-  win.webContents.openDevTools();
-
-  globalShortcut.register("CommandOrControl+Up", () => {
-    if (!win) return;
-    win.focus();
-    win?.webContents.send("key-press", "up");
-  });
-
-  globalShortcut.register("CommandOrControl+Down", () => {
-    if (!win) return;
-    win.focus();
-    win?.webContents.send("key-press", "down");
-  });
-
-  globalShortcut.register("CommandOrControl+Left", () => {
-    if (!win) return;
-    win.focus();
-    win?.webContents.send("key-press", "left");
-  });
-
-  globalShortcut.register("CommandOrControl+Right", () => {
-    if (!win) return;
-    win.focus();
-    win?.webContents.send("key-press", "right");
-  });
-
+  // win.webContents.openDevTools();
+  // Load the appropriate URL
   if (VITE_DEV_SERVER_URL) {
-    // #298
     win.loadURL(VITE_DEV_SERVER_URL);
-    // Open devTool if the app is not packaged
-    // win.webContents.openDevTools() // avoid error for now
   } else {
     win.loadFile(indexHtml);
   }
 
-  // Test actively push message to the Electron-Renderer
+  // Open dev tools explicitly after the app is ready
   win.webContents.on("did-finish-load", () => {
-    win?.webContents.send("main-process-message", new Date().toLocaleString());
+    if (win && !win.webContents.isDevToolsOpened()) {
+      win.webContents.openDevTools();
+    }
   });
 
-  // Make all links open with the browser, not with the application
+  // Handle external link opening
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith("https:")) shell.openExternal(url);
     return { action: "deny" };
   });
 
-  // Auto update
   update(win);
 }
 
-app.whenReady().then(createWindow);
+// Register global shortcuts
+function registerShortcuts() {
+  if (!win) return;
+  globalShortcut.register("CommandOrControl+Up", () => {
+    win?.focus();
+    win?.webContents.send("key-press", "up");
+  });
+  globalShortcut.register("CommandOrControl+Down", () => {
+    win?.focus();
+    return win?.webContents.send("key-press", "down");
+  });
+  globalShortcut.register("CommandOrControl+Left", () => {
+    win?.focus();
+
+    return win?.webContents.send("key-press", "left");
+  });
+  globalShortcut.register("CommandOrControl+Right", () => {
+    win?.focus();
+    return win?.webContents.send("key-press", "right");
+  });
+}
+
+// Worker thread for OCR
+function runTesseractWorker(buffer: Buffer, lang: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(path.join(__dirname, "./ocr-worker.js"), {
+      workerData: { buffer, lang },
+    });
+
+    worker.on("message", resolve);
+    worker.on("error", reject);
+    worker.on("exit", (code) => {
+      if (code !== 0) reject(new Error(`Worker stopped with exit code ${code}`));
+    });
+  });
+}
+
+type Options = {
+  lang?: string;
+  crop?: { left: number; top: number; width: number; height: number };
+};
+
+ipcMain.handle("read-dofus-ocr", async (_, options: Options) => {
+  const { lang, crop } = options;
+  // 1) Capture + OCR
+  const ocrText = await captureAndReadOCR(lang, crop);
+
+  return ocrText;
+});
+
+app.whenReady().then(() => {
+  createWindow();
+  registerShortcuts();
+});
 
 app.on("window-all-closed", () => {
   win = null;
@@ -164,3 +180,38 @@ ipcMain.on("resize-window", (event, { width, height }) => {
     // win.setMinimumSize(100, 100);
   }
 });
+
+async function captureAndReadOCR(lang = "fra", crop) {
+  const debugFilename = path.join(
+    process.env.HOME || process.cwd(),
+    "\\Pictures\\Dofus-OCR",
+    `dofus-ocr-debug-1.png`
+  );
+
+  // Capture either full screen or a crop region
+  const imgBuffer = await screenshotDesktop({
+    filename: debugFilename, // <--- automatically saves to disk
+  });
+
+  const cropped = sharp(imgBuffer)
+    .extract(crop)
+    .gamma(3)
+    .greyscale()
+    .normalise()
+    .trim()
+    .sharpen({ sigma: 2 });
+
+  const croppedBuffer = await cropped.toBuffer();
+
+  cropped.toFile(debugFilename + "-cropped.png");
+
+  console.log("Screenshot saved to:", debugFilename);
+
+  const worker = await createWorker(lang);
+  const {
+    data: { text },
+  } = await worker.recognize(croppedBuffer);
+  worker.terminate();
+
+  return text;
+}

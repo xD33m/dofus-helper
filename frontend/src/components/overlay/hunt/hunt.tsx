@@ -1,14 +1,25 @@
 import React, { useState, useEffect, useRef } from "react";
-import Downshift, { DownshiftProps, GetItemPropsOptions } from "downshift";
+import Downshift from "downshift";
 import Fuse from "fuse.js";
 
 import { loadClueData, getCluesInDirectionWithMetadata } from "@/db/cluesDatabase";
 
-import "./hunt.css"; // Assume you have your custom styles here
-
+import "./hunt.css";
 import { FaArrowUp, FaArrowDown, FaArrowLeft, FaArrowRight } from "react-icons/fa";
+import { matchClues } from "@/lib/clues";
+
+const CLUE_LANG = "fr";
+const OCR_LANG = "fra";
+
+type Clue = {
+  name: string;
+  distance: number;
+  xPos: number;
+  yPos: number;
+};
 
 const Hunt: React.FC = () => {
+  console.log("🔍 Hunt Component");
   // -----------------------------------------------------
   //  1) State + Refs
   // -----------------------------------------------------
@@ -21,30 +32,27 @@ const Hunt: React.FC = () => {
   const [selectedClueDetails, setSelectedClueDetails] = useState<any>(null);
   const [noCluesMessage, setNoCluesMessage] = useState(false);
 
-  // For resizing the Electron window automatically
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // We’ll let Downshift control open/close, so we do NOT store `dropdownVisible` in state
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Fuse.js for fuzzy searching. Re-created if `cluesInDirection` changes
-  const fuse = new Fuse(cluesInDirection, { keys: ["name"], threshold: 0.4 });
+  const fuse = new Fuse(cluesInDirection, {
+    keys: ["name"],
+    threshold: 0.4,
+    minMatchCharLength: 2,
+  });
 
   // -----------------------------------------------------
-  //  2) Setup on Mount: data load + global key from IPC + ResizeObserver
+  //  2) Setup on Mount: data load + global key from IPC
   // -----------------------------------------------------
   useEffect(() => {
-    // Load your clue data
-    loadClueData("fr");
+    loadClueData(CLUE_LANG);
 
-    // Listen for arrow key presses from main process (if you are using them)
     if (window?.ipcRenderer) {
-      window.ipcRenderer.on("key-press", (_event, direction) => {
-        // direction is "up" | "down" | "left" | "right"
-        setActiveDirection(direction);
-        // Optionally focus the input so user can type immediately
-        inputRef.current?.focus();
-      });
+      const keyPressHandler = (_event: any, direction: "up" | "down" | "left" | "right") => {
+        handleDirection(direction);
+      };
+
+      window.ipcRenderer.on("key-press", keyPressHandler);
     }
   }, []);
 
@@ -52,9 +60,7 @@ const Hunt: React.FC = () => {
   //  3) Update clues when direction or coordinates change
   // -----------------------------------------------------
   useEffect(() => {
-    if (!activeDirection || coordinates.x === "" || coordinates.y === "") {
-      return;
-    }
+    if (!activeDirection || coordinates.x === "" || coordinates.y === "") return;
 
     const newClues = getCluesInDirectionWithMetadata(
       Number(coordinates.x),
@@ -68,45 +74,66 @@ const Hunt: React.FC = () => {
     if (newClues.length === 0) {
       setNoCluesMessage(true);
       setSelectedClueDetails(null);
-      // Hide the "no clues" message after a few seconds
       setTimeout(() => setNoCluesMessage(false), 3000);
     } else {
       setNoCluesMessage(false);
     }
   }, [activeDirection, coordinates]);
 
-  // -----------------------------------------------------
-  //  4) Handle coordinate input changes
-  // -----------------------------------------------------
+  const handleDirection = async (direction: "up" | "down" | "left" | "right") => {
+    console.log("🔀 Direction:", direction);
+    setActiveDirection(direction);
+    inputRef.current?.focus();
+
+    if (!window?.ipcRenderer) return { clue: null };
+
+    // Use the latest coordinates by reading them inside setState callback
+    setCoordinates((prevCoords) => {
+      console.log("🔍 Coordinates Before OCR:", prevCoords);
+
+      // Now, we ensure we're using the latest coordinates
+      const cluesInDir = getCluesInDirectionWithMetadata(
+        Number(prevCoords.x),
+        Number(prevCoords.y),
+        direction
+      );
+
+      console.log("🔍 Clues in Direction (cluesInDir):", cluesInDir);
+
+      // Perform OCR based on the latest coordinates
+      window.ipcRenderer
+        .invoke("read-dofus-ocr", {
+          crop: { left: 0, top: 190, width: 300, height: 350 },
+          lang: OCR_LANG,
+        })
+        .then((ocrString) => {
+          console.log("🔠 OCR Text:", ocrString);
+
+          const clue = matchClues(ocrString, cluesInDir);
+
+          if (clue) {
+            console.log("🔍 Clue Detected:", clue);
+            handleSelectClue(clue, { clearSelection: () => {} });
+          }
+        });
+
+      return prevCoords; // Keep the coordinates unchanged
+    });
+  };
+
   const handleCoordinateChange = (e: React.ChangeEvent<HTMLInputElement>, axis: "x" | "y") => {
     const value = e.target.value;
-    // allow empty or numeric (including negative)
     if (
       value === "" ||
       !isNaN(Number(value)) ||
       (value[0] === "-" && !isNaN(Number(value.slice(1))))
     ) {
-      setCoordinates((prev) => ({
-        ...prev,
-        [axis]: value, // keep as string but numeric-friendly
-      }));
+      setCoordinates((prev) => ({ ...prev, [axis]: value }));
     }
   };
 
-  // -----------------------------------------------------
-  //  5) D-Pad click
-  // -----------------------------------------------------
-  const handleDirectionClick = (direction: "up" | "down" | "left" | "right") => {
-    setActiveDirection(direction);
-    inputRef.current?.focus();
-  };
-
-  // -----------------------------------------------------
-  //  6) (Downshift) handle user input, do fuzzy search
-  // -----------------------------------------------------
   const handleInputValueChange = (inputValue?: string) => {
     if (!inputValue || !inputValue.trim()) {
-      // If empty, show all clues in that direction
       setFilteredClues(cluesInDirection);
       return;
     }
@@ -114,18 +141,12 @@ const Hunt: React.FC = () => {
     setFilteredClues(results.map((r) => r.item));
   };
 
-  // -----------------------------------------------------
-  //  7) (Downshift) handle final selection
-  // -----------------------------------------------------
-  const handleSelectClue = (selectedClue, downshiftHelpers) => {
-    // For safety, ensure there's a clue
+  const handleSelectClue = (selectedClue: Clue, downshiftHelpers: any) => {
     if (!selectedClue) return;
 
-    // Copy to clipboard
     const travelCommand = `/travel ${selectedClue.xPos},${selectedClue.yPos}`;
     navigator.clipboard.writeText(travelCommand);
 
-    // Show details
     const directionArrow =
       activeDirection &&
       {
@@ -139,17 +160,14 @@ const Hunt: React.FC = () => {
       direction: directionArrow,
       distance: `${selectedClue.distance} map${selectedClue.distance > 1 ? "s" : ""}`,
       coordinates: `[${selectedClue.xPos}; ${selectedClue.yPos}]`,
+      clue: selectedClue.name,
     });
 
-    // Optionally set the coordinate inputs to the new clue
-    setCoordinates({ x: selectedClue.xPos, y: selectedClue.yPos });
-
-    // Reset direction
+    console.log("🎯 Selected Clue:", selectedClue);
+    setCoordinates({ x: selectedClue.xPos.toString(), y: selectedClue.yPos.toString() });
     setActiveDirection(null);
 
-    // Hide the details after 3 seconds
     setTimeout(() => {
-      // downshiftHelpers.reset({ inputValue: "" });
       downshiftHelpers.clearSelection();
       setSelectedClueDetails(null);
     }, 3000);
@@ -157,7 +175,7 @@ const Hunt: React.FC = () => {
 
   return (
     <div className="hunt-container" ref={containerRef}>
-      {/* 1) Coordinates */}
+      {/* Coordinates */}
       <div className="coordinates">
         <input
           placeholder="X"
@@ -173,12 +191,12 @@ const Hunt: React.FC = () => {
         />
       </div>
 
-      {/* 2) D-Pad */}
+      {/* D-Pad */}
       <div className="dpad-container">
         <div className="dpad-row">
           <button
             className={`dpad-button ${activeDirection === "up" ? "active" : ""}`}
-            onClick={() => handleDirectionClick("up")}
+            onClick={() => handleDirection("up")}
           >
             <FaArrowUp size={20} />
           </button>
@@ -186,14 +204,14 @@ const Hunt: React.FC = () => {
         <div className="dpad-row">
           <button
             className={`dpad-button ${activeDirection === "left" ? "active" : ""}`}
-            onClick={() => handleDirectionClick("left")}
+            onClick={() => handleDirection("left")}
           >
             <FaArrowLeft size={20} />
           </button>
-          <button className="dpad-center" aria-hidden="true"></button>
+          <button className="dpad-center" aria-hidden="true" />
           <button
             className={`dpad-button ${activeDirection === "right" ? "active" : ""}`}
-            onClick={() => handleDirectionClick("right")}
+            onClick={() => handleDirection("right")}
           >
             <FaArrowRight size={20} />
           </button>
@@ -201,19 +219,19 @@ const Hunt: React.FC = () => {
         <div className="dpad-row">
           <button
             className={`dpad-button ${activeDirection === "down" ? "active" : ""}`}
-            onClick={() => handleDirectionClick("down")}
+            onClick={() => handleDirection("down")}
           >
             <FaArrowDown size={20} />
           </button>
         </div>
       </div>
 
-      {/* 3) No clues or selected clue message */}
       {noCluesMessage ? (
         <div className="no-clues-message">No more clues in this direction</div>
       ) : (
         selectedClueDetails && (
           <div className="selected-clue-details">
+            <span>{selectedClueDetails.clue}</span>
             <span className="direction-icon">{selectedClueDetails.direction}</span>
             <span>{selectedClueDetails.distance}</span>
             <span className="selected-coordinates">{selectedClueDetails.coordinates}</span>
@@ -221,14 +239,10 @@ const Hunt: React.FC = () => {
         )
       )}
 
-      {/* 4) Downshift for input + auto dropdown */}
       <Downshift
-        // The items are your filtered clues
         items={filteredClues}
         itemToString={(item) => (item ? item.name : "")}
-        // Called when user selects an item
         onChange={handleSelectClue}
-        // Called whenever the input value changes
         onInputValueChange={handleInputValueChange}
       >
         {({ getInputProps, getMenuProps, getItemProps, isOpen, highlightedIndex }) => (
@@ -240,7 +254,6 @@ const Hunt: React.FC = () => {
                 className: "clue-input",
               })}
             />
-
             {isOpen && filteredClues.length > 0 && (
               <ul {...getMenuProps()} className="clue-dropdown">
                 {filteredClues.map((clue, index) => (
@@ -255,8 +268,7 @@ const Hunt: React.FC = () => {
                       },
                     })}
                   >
-                    {clue.name} ({clue.distance} map
-                    {clue.distance > 1 ? "s" : ""})
+                    {clue.name} ({clue.distance} map{clue.distance > 1 ? "s" : ""})
                   </li>
                 ))}
               </ul>

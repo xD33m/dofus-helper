@@ -5,7 +5,7 @@ import "./overlay.css";
 import Hunt from "./hunt/hunt.js";
 
 const Overlay = () => {
-  const [isSearch, setIsSearch] = useState(true);
+  const [isSearch, setIsSearch] = useState(false);
   const containerRef = useRef(null);
 
   useEffect(() => {

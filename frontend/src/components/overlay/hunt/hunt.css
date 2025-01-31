@@ -91,6 +91,7 @@
 .selected-clue-details {
   display: flex;
   align-items: center;
+  flex-direction: column;
   justify-content: space-between;
   background-color: #1e1e2f69; /* Dark background */
   border-radius: 3px;
@@ -177,4 +178,37 @@
 .clue-dropdown li:hover,
 .clue-dropdown li.selected {
   background-color: #46496fb2;
+}
+
+.selected-destination {
+  gap: 10px;
+}
+
+.selected-clue-name {
+  font-weight: 500;
+  font-size: small;
+}
+
+.language-switch {
+  display: flex;
+  align-items: center;
+  position: absolute;
+  left: 5px;
+  top: 30px;
+}
+
+.language-switch button {
+  background-color: #46496f81;
+  color: #e0e0e0;
+  border: none;
+  padding: 5px 10px;
+  font-size: 14px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  padding-bottom: 7px;
+}
+
+.language-switch button:hover {
+  background-color: #5a5d88;
 }

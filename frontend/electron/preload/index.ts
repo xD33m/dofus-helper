@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld("ipcRenderer", {
     const [channel, ...omit] = args;
     return ipcRenderer.invoke(channel, ...omit);
   },
+  readOCR: (buffer: Buffer, lang: string) => ipcRenderer.invoke("read-dofus-ocr", { buffer, lang }),
 
   // You can expose other APTs you need here.
   // ...

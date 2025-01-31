@@ -13,9 +13,7 @@ const ClueNamesMap: ClueNamesMapType = new Map();
 // Function to parse and load data
 function loadClueData(countryCode: string): void {
   const langKey = `name-${countryCode}`;
-  console.log("Reading Datas...");
 
-  console.log("Loading ClueMap...");
   Object.values(data.maps).forEach((mapItem: any) => {
     const pos = mapItem.position;
     const x = pos.x;
@@ -30,16 +28,15 @@ function loadClueData(countryCode: string): void {
     const rowMap = CluesPosMap.get(x)!;
     rowMap.set(y, clues);
   });
-  console.log("Loaded ClueMaps");
 
-  console.log("Loading ClueNames...");
   data.clues.forEach((clueItem: any) => {
     const id = parseInt(clueItem["clue-id"]);
     let name = clueItem[langKey] || ""; // Access the name based on the country code
     name = normalizeUnicodeText(name).toLowerCase();
     ClueNamesMap.set(id, name);
   });
-  console.log("Loaded ClueNames");
+
+  console.log(`✅ Clues data loaded ${countryCode}`);
 }
 
 type ClueMetadata = {
@@ -60,6 +57,8 @@ function getCluesInDirectionWithMetadata(
 ): ClueMetadata[] {
   // A map from clueName -> the closest ClueMetadata
   const cluesByName = new Map<string, ClueMetadata>();
+
+  console.log(`Searching for clues in direction ${direction} from (${x}, ${y})`);
 
   let stepX = 0;
   let stepY = 0;
@@ -119,4 +118,8 @@ function getCluesInDirectionWithMetadata(
   return uniqueClues;
 }
 
-export { loadClueData, CluesPosMap, ClueNamesMap, getCluesInDirectionWithMetadata };
+function getAllClues(): string[] {
+  return Array.from(ClueNamesMap.values());
+}
+
+export { loadClueData, CluesPosMap, ClueNamesMap, getCluesInDirectionWithMetadata, getAllClues };

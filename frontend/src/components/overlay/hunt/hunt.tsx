@@ -1,60 +1,143 @@
-import React, { useState, useEffect, useRef } from "react";
-import Downshift, { DownshiftProps, GetItemPropsOptions } from "downshift";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import Downshift from "downshift";
 import Fuse from "fuse.js";
 
 import { loadClueData, getCluesInDirectionWithMetadata } from "@/db/cluesDatabase";
 
-import "./hunt.css"; // Assume you have your custom styles here
-
+import "./hunt.css";
 import { FaArrowUp, FaArrowDown, FaArrowLeft, FaArrowRight } from "react-icons/fa";
+import { matchClues } from "@/lib/clues";
+import fuse from "fuse.js";
+
+// Language configurations
+const LANGUAGES = {
+  fr: { clueLang: "fr", ocrLang: "fra", flag: "🇫🇷" },
+  de: { clueLang: "de", ocrLang: "deu", flag: "🇩🇪" },
+};
+
+export type Clue = {
+  name: string;
+  distance: number;
+  xPos: number;
+  yPos: number;
+  normalizedName: string; // Assuming normalizedName exists
+};
+
+type SelectedClueDetails = {
+  direction: JSX.Element | null;
+  distance: string;
+  coordinates: string;
+  clue: string;
+} | null;
 
 const Hunt: React.FC = () => {
+  console.log("🔍 Hunt Component");
+
   // -----------------------------------------------------
-  //  1) State + Refs
+  // 1) State + Refs
   // -----------------------------------------------------
+  const [language, setLanguage] = useState<"fr" | "de">("fr");
+  const [clueLang, setClueLang] = useState<string>(LANGUAGES["fr"].clueLang);
+  const [ocrLang, setOcrLang] = useState<string>(LANGUAGES["fr"].ocrLang);
+
+  // Ref to store the latest ocrLang
+  const ocrLangRef = useRef<string>(ocrLang);
+  useEffect(() => {
+    ocrLangRef.current = ocrLang;
+    console.log(`📝 OCR Language updated to: ${ocrLang}`);
+  }, [ocrLang]);
+
   const [activeDirection, setActiveDirection] = useState<"up" | "down" | "left" | "right" | null>(
     null
   );
   const [coordinates, setCoordinates] = useState({ x: "", y: "" });
-  const [cluesInDirection, setCluesInDirection] = useState<any[]>([]);
-  const [filteredClues, setFilteredClues] = useState<any[]>([]);
-  const [selectedClueDetails, setSelectedClueDetails] = useState<any>(null);
-  const [noCluesMessage, setNoCluesMessage] = useState(false);
+  const [cluesInDirection, setCluesInDirection] = useState<Clue[]>([]);
+  const [filteredClues, setFilteredClues] = useState<Clue[]>([]);
+  const [selectedClueDetails, setSelectedClueDetails] = useState<SelectedClueDetails>(null);
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
-  // For resizing the Electron window automatically
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // We’ll let Downshift control open/close, so we do NOT store `dropdownVisible` in state
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Fuse.js for fuzzy searching. Re-created if `cluesInDirection` changes
-  const fuse = new Fuse(cluesInDirection, { keys: ["name"], threshold: 0.4 });
+  // Initialize Fuse with dynamic cluesInDirection
+  const fuse = useRef<Fuse<Clue>>(
+    new Fuse(cluesInDirection, {
+      keys: ["name", "normalizedName"],
+      threshold: 0.4,
+      minMatchCharLength: 2,
+    })
+  ).current;
+
+  // Update Fuse whenever cluesInDirection changes
+  useEffect(() => {
+    fuse.setCollection(cluesInDirection);
+    console.log("🔄 Fuse collection updated:", cluesInDirection);
+  }, [cluesInDirection, fuse]);
+
+  // Language toggle handler
+  const toggleLanguage = useCallback(() => {
+    setLanguage((prev) => (prev === "fr" ? "de" : "fr"));
+    console.log(`🌐 Language toggled to: ${language === "fr" ? "de" : "fr"}`);
+  }, [language]);
+
+  // Update clueLang and ocrLang based on selected language
+  useEffect(() => {
+    setClueLang(LANGUAGES[language].clueLang);
+    setOcrLang(LANGUAGES[language].ocrLang);
+    console.log(
+      `🌐 Language set to ${language}. ClueLang: ${LANGUAGES[language].clueLang}, OCRLang: ${LANGUAGES[language].ocrLang}`
+    );
+  }, [language]);
+
+  // Load clue data whenever clueLang changes
+  useEffect(() => {
+    try {
+      loadClueData(clueLang);
+      console.log(`🔄 Clue data loaded for language: ${clueLang}`);
+
+      // If there's an active direction and valid coordinates, refresh clues
+      if (activeDirection && coordinates.x !== "" && coordinates.y !== "") {
+        const newClues = getCluesInDirectionWithMetadata(
+          Number(coordinates.x),
+          Number(coordinates.y),
+          activeDirection
+        );
+        setCluesInDirection(newClues);
+        setFilteredClues(newClues);
+        console.log("🔍 Clues refreshed after language change:", newClues);
+      }
+    } catch (error) {
+      console.error("Error loading clue data:", error);
+      setErrorMessage("Failed to load clues data.");
+      setTimeout(() => setErrorMessage(""), 4000);
+    }
+  }, [clueLang, activeDirection, coordinates]);
 
   // -----------------------------------------------------
-  //  2) Setup on Mount: data load + global key from IPC + ResizeObserver
+  // 2) Setup on Mount: global key from IPC
   // -----------------------------------------------------
   useEffect(() => {
-    // Load your clue data
-    loadClueData("fr");
-
-    // Listen for arrow key presses from main process (if you are using them)
     if (window?.ipcRenderer) {
-      window.ipcRenderer.on("key-press", (_event, direction) => {
-        // direction is "up" | "down" | "left" | "right"
-        setActiveDirection(direction);
-        // Optionally focus the input so user can type immediately
-        inputRef.current?.focus();
-      });
+      const keyPressHandler = (_event: any, direction: "up" | "down" | "left" | "right") => {
+        handleDirectionWithOCR(direction);
+      };
+
+      window.ipcRenderer.on("key-press", keyPressHandler);
+      console.log("🔑 IPC Keypress listener added.");
+
+      // Cleanup listener on unmount
+      // return () => {
+      //           window.ipcRenderer.removeListener("key-press", keyPressHandler);
+      //           console.log("🔑 Global keypress listeners removed.");
+      //       };
     }
-  }, []);
+  }, []); // Empty dependency array ensures this runs once on mount
 
   // -----------------------------------------------------
-  //  3) Update clues when direction or coordinates change
+  // 3) Update clues when direction or coordinates change
   // -----------------------------------------------------
   useEffect(() => {
-    if (!activeDirection || coordinates.x === "" || coordinates.y === "") {
-      return;
-    }
+    if (!activeDirection || coordinates.x === "" || coordinates.y === "") return;
 
     const newClues = getCluesInDirectionWithMetadata(
       Number(coordinates.x),
@@ -64,100 +147,222 @@ const Hunt: React.FC = () => {
 
     setCluesInDirection(newClues);
     setFilteredClues(newClues);
+    console.log("🔍 Clues updated based on direction and coordinates:", newClues);
 
     if (newClues.length === 0) {
-      setNoCluesMessage(true);
+      console.warn("No clues found in this direction.");
+      setErrorMessage("No clues found in this direction.");
       setSelectedClueDetails(null);
-      // Hide the "no clues" message after a few seconds
-      setTimeout(() => setNoCluesMessage(false), 3000);
+      setTimeout(() => setErrorMessage(""), 4000);
     } else {
-      setNoCluesMessage(false);
+      setErrorMessage("");
     }
   }, [activeDirection, coordinates]);
 
   // -----------------------------------------------------
-  //  4) Handle coordinate input changes
+  // 4) Handle Direction with OCR (Triggered via IPC Keypresses)
   // -----------------------------------------------------
-  const handleCoordinateChange = (e: React.ChangeEvent<HTMLInputElement>, axis: "x" | "y") => {
-    const value = e.target.value;
-    // allow empty or numeric (including negative)
-    if (
-      value === "" ||
-      !isNaN(Number(value)) ||
-      (value[0] === "-" && !isNaN(Number(value.slice(1))))
-    ) {
-      setCoordinates((prev) => ({
-        ...prev,
-        [axis]: value, // keep as string but numeric-friendly
-      }));
-    }
-  };
-
-  // -----------------------------------------------------
-  //  5) D-Pad click
-  // -----------------------------------------------------
-  const handleDirectionClick = (direction: "up" | "down" | "left" | "right") => {
+  const handleDirectionWithOCR = (direction: "up" | "down" | "left" | "right") => {
+    console.log("🔀 Handling direction with OCR:", direction);
     setActiveDirection(direction);
-    inputRef.current?.focus();
-  };
 
-  // -----------------------------------------------------
-  //  6) (Downshift) handle user input, do fuzzy search
-  // -----------------------------------------------------
-  const handleInputValueChange = (inputValue?: string) => {
-    if (!inputValue || !inputValue.trim()) {
-      // If empty, show all clues in that direction
-      setFilteredClues(cluesInDirection);
+    if (!window?.ipcRenderer) {
+      console.error("ipcRenderer not available.");
+      setErrorMessage("OCR functionality unavailable.");
+      setTimeout(() => setErrorMessage(""), 4000);
       return;
     }
-    const results = fuse.search(inputValue);
-    setFilteredClues(results.map((r) => r.item));
-  };
 
-  // -----------------------------------------------------
-  //  7) (Downshift) handle final selection
-  // -----------------------------------------------------
-  const handleSelectClue = (selectedClue, downshiftHelpers) => {
-    // For safety, ensure there's a clue
-    if (!selectedClue) return;
+    setCoordinates((prevCoords) => {
+      console.log("🔍 Coordinates Before OCR:", prevCoords);
 
-    // Copy to clipboard
-    const travelCommand = `/travel ${selectedClue.xPos},${selectedClue.yPos}`;
-    navigator.clipboard.writeText(travelCommand);
+      const currentX = Number(prevCoords.x);
+      const currentY = Number(prevCoords.y);
 
-    // Show details
-    const directionArrow =
-      activeDirection &&
-      {
-        up: <FaArrowUp />,
-        down: <FaArrowDown />,
-        left: <FaArrowLeft />,
-        right: <FaArrowRight />,
-      }[activeDirection];
+      if (isNaN(currentX) || isNaN(currentY)) {
+        console.error("Invalid coordinates:", prevCoords);
+        setErrorMessage("Invalid coordinates.");
+        setTimeout(() => setErrorMessage(""), 4000);
+        return prevCoords; // Keep the coordinates unchanged
+      }
 
-    setSelectedClueDetails({
-      direction: directionArrow,
-      distance: `${selectedClue.distance} map${selectedClue.distance > 1 ? "s" : ""}`,
-      coordinates: `[${selectedClue.xPos}; ${selectedClue.yPos}]`,
+      const cluesInDir = getCluesInDirectionWithMetadata(currentX, currentY, direction);
+      console.log("🔍 Clues in Direction (cluesInDir):", cluesInDir);
+
+      setCluesInDirection(cluesInDir);
+      setFilteredClues(cluesInDir);
+
+      if (cluesInDir.length === 0) {
+        console.warn("No clues found in this direction.");
+        setErrorMessage("No clues found in this direction.");
+        setSelectedClueDetails(null);
+        setTimeout(() => setErrorMessage(""), 4000);
+      } else {
+        setErrorMessage("");
+      }
+
+      // Perform OCR based on the latest ocrLang from ref
+      window.ipcRenderer
+        .invoke("read-dofus-ocr", {
+          crop: { left: 0, top: 190, width: 300, height: 350 },
+          lang: ocrLangRef.current, // Use ref to ensure latest value
+        })
+        .then((ocrString: string) => {
+          console.log("🔠 OCR Text:", ocrString);
+
+          const { clue, error } = matchClues(ocrString, cluesInDir);
+
+          if (clue) {
+            console.log("🔍 Clue Detected:", clue);
+            handleSelectClue(clue, { clearSelection: () => {} });
+          } else if (error) {
+            console.warn("🔍 OCR Match Error:", error);
+            setErrorMessage(error);
+            setSelectedClueDetails(null);
+            setTimeout(() => setErrorMessage(""), 4000);
+          }
+        });
+      // .catch((err: any) => {
+      //   console.error("OCR Error:", err);
+      //   setErrorMessage("OCR Error");
+      //   setSelectedClueDetails(null);
+      //   setTimeout(() => setErrorMessage(""), 4000);
+      // });
+
+      return prevCoords; // Keep the coordinates unchanged
     });
-
-    // Optionally set the coordinate inputs to the new clue
-    setCoordinates({ x: selectedClue.xPos, y: selectedClue.yPos });
-
-    // Reset direction
-    setActiveDirection(null);
-
-    // Hide the details after 3 seconds
-    setTimeout(() => {
-      // downshiftHelpers.reset({ inputValue: "" });
-      downshiftHelpers.clearSelection();
-      setSelectedClueDetails(null);
-    }, 3000);
   };
+
+  // -----------------------------------------------------
+  // 5) Handle Direction Manually (Triggered via Arrow Button Clicks)
+  // -----------------------------------------------------
+  const handleDirectionManual = useCallback(
+    (direction: "up" | "down" | "left" | "right") => {
+      console.log("🔀 Handling direction manually:", direction);
+      setActiveDirection(direction);
+
+      if (!coordinates.x || !coordinates.y) {
+        console.error("Coordinates are required for manual input.");
+        setErrorMessage("Set coordinates before selecting a direction.");
+        setTimeout(() => setErrorMessage(""), 4000);
+        return;
+      }
+
+      const newClues = getCluesInDirectionWithMetadata(
+        Number(coordinates.x),
+        Number(coordinates.y),
+        direction
+      );
+
+      setCluesInDirection(newClues);
+      setFilteredClues(newClues);
+      console.log("🔍 Clues updated based on manual direction:", newClues);
+
+      if (newClues.length === 0) {
+        console.warn("No clues found in this direction.");
+        setErrorMessage("No clues found in this direction.");
+        setSelectedClueDetails(null);
+        setTimeout(() => setErrorMessage(""), 4000);
+      } else {
+        setErrorMessage("");
+      }
+
+      // Focus the input field for manual entry
+      inputRef.current?.focus();
+    },
+    [coordinates]
+  );
+
+  // -----------------------------------------------------
+  // 6) Handle Coordinate Change
+  // -----------------------------------------------------
+  const handleCoordinateChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>, axis: "x" | "y") => {
+      const value = e.target.value;
+      if (
+        value === "" ||
+        !isNaN(Number(value)) ||
+        (value[0] === "-" && !isNaN(Number(value.slice(1))))
+      ) {
+        setCoordinates((prev) => ({ ...prev, [axis]: value }));
+        console.log(`📝 Updated Coordinates: (${axis}: ${value})`);
+      }
+    },
+    []
+  );
+
+  // -----------------------------------------------------
+  // 7) Handle Input Value Change for Downshift
+  // -----------------------------------------------------
+  const handleInputValueChange = useCallback(
+    (inputValue?: string) => {
+      if (!inputValue || !inputValue.trim()) {
+        setFilteredClues(cluesInDirection);
+        console.log(`🔍 Input cleared. Resetting filtered clues.`);
+        return;
+      }
+      const results = fuse.search(inputValue);
+      setFilteredClues(results.map((r) => r.item));
+      console.log(
+        `🔍 Input Value Changed: "${inputValue}", Filtered Clues:`,
+        results.map((r) => r.item)
+      );
+    },
+    [cluesInDirection, fuse]
+  );
+
+  // -----------------------------------------------------
+  // 8) Handle Clue Selection
+  // -----------------------------------------------------
+  const handleSelectClue = useCallback(
+    (selectedClue: Clue, downshiftHelpers: any) => {
+      if (!selectedClue) return;
+
+      console.log("✅ Selected Clue:", selectedClue);
+
+      const travelCommand = `/travel ${selectedClue.xPos},${selectedClue.yPos}`;
+      navigator.clipboard.writeText(travelCommand);
+      console.log(`📋 Copied Travel Command: ${travelCommand}`);
+
+      const directionArrow =
+        activeDirection &&
+        {
+          up: <FaArrowUp />,
+          down: <FaArrowDown />,
+          left: <FaArrowLeft />,
+          right: <FaArrowRight />,
+        }[activeDirection];
+
+      setSelectedClueDetails({
+        direction: directionArrow,
+        distance: `${selectedClue.distance} map${selectedClue.distance > 1 ? "s" : ""}`,
+        coordinates: `[${selectedClue.xPos}; ${selectedClue.yPos}]`,
+        clue: selectedClue.name,
+      });
+
+      setCoordinates({ x: selectedClue.xPos.toString(), y: selectedClue.yPos.toString() });
+      console.log(`📍 Coordinates updated to: (${selectedClue.xPos}, ${selectedClue.yPos})`);
+      setActiveDirection(null);
+
+      setTimeout(() => {
+        downshiftHelpers.clearSelection();
+        setSelectedClueDetails(null);
+        console.log("🕒 Cleared selected clue details after timeout.");
+      }, 4000);
+    },
+    [activeDirection]
+  );
 
   return (
     <div className="hunt-container" ref={containerRef}>
-      {/* 1) Coordinates */}
+      {/* Language Switch */}
+      <div className="language-switch">
+        <button onClick={toggleLanguage} aria-label="Toggle Language">
+          {LANGUAGES[language].flag}
+        </button>
+      </div>
+
+      {/* Coordinates */}
       <div className="coordinates">
         <input
           placeholder="X"
@@ -173,12 +378,13 @@ const Hunt: React.FC = () => {
         />
       </div>
 
-      {/* 2) D-Pad */}
+      {/* D-Pad */}
       <div className="dpad-container">
         <div className="dpad-row">
           <button
             className={`dpad-button ${activeDirection === "up" ? "active" : ""}`}
-            onClick={() => handleDirectionClick("up")}
+            onClick={() => handleDirectionManual("up")}
+            aria-label="Up"
           >
             <FaArrowUp size={20} />
           </button>
@@ -186,14 +392,16 @@ const Hunt: React.FC = () => {
         <div className="dpad-row">
           <button
             className={`dpad-button ${activeDirection === "left" ? "active" : ""}`}
-            onClick={() => handleDirectionClick("left")}
+            onClick={() => handleDirectionManual("left")}
+            aria-label="Left"
           >
             <FaArrowLeft size={20} />
           </button>
-          <button className="dpad-center" aria-hidden="true"></button>
+          <button className="dpad-center" aria-hidden="true" />
           <button
             className={`dpad-button ${activeDirection === "right" ? "active" : ""}`}
-            onClick={() => handleDirectionClick("right")}
+            onClick={() => handleDirectionManual("right")}
+            aria-label="Right"
           >
             <FaArrowRight size={20} />
           </button>
@@ -201,34 +409,35 @@ const Hunt: React.FC = () => {
         <div className="dpad-row">
           <button
             className={`dpad-button ${activeDirection === "down" ? "active" : ""}`}
-            onClick={() => handleDirectionClick("down")}
+            onClick={() => handleDirectionManual("down")}
+            aria-label="Down"
           >
             <FaArrowDown size={20} />
           </button>
         </div>
       </div>
 
-      {/* 3) No clues or selected clue message */}
-      {noCluesMessage ? (
-        <div className="no-clues-message">No more clues in this direction</div>
+      {/* Error or Selected Clue Details */}
+      {errorMessage ? (
+        <div className="no-clues-message">{errorMessage}</div>
       ) : (
         selectedClueDetails && (
           <div className="selected-clue-details">
-            <span className="direction-icon">{selectedClueDetails.direction}</span>
-            <span>{selectedClueDetails.distance}</span>
-            <span className="selected-coordinates">{selectedClueDetails.coordinates}</span>
+            <span className="selected-clue-name">{selectedClueDetails.clue}</span>
+            <span className="selected-destination">
+              <span className="direction-icon">{selectedClueDetails.direction}</span>
+              <span>{selectedClueDetails.distance}</span>
+              <span className="selected-coordinates">{selectedClueDetails.coordinates}</span>
+            </span>
           </div>
         )
       )}
 
-      {/* 4) Downshift for input + auto dropdown */}
+      {/* Clue Dropdown */}
       <Downshift
-        // The items are your filtered clues
         items={filteredClues}
         itemToString={(item) => (item ? item.name : "")}
-        // Called when user selects an item
-        onChange={handleSelectClue}
-        // Called whenever the input value changes
+        onChange={(selection, downshiftHelpers) => handleSelectClue(selection, downshiftHelpers)}
         onInputValueChange={handleInputValueChange}
       >
         {({ getInputProps, getMenuProps, getItemProps, isOpen, highlightedIndex }) => (
@@ -236,16 +445,15 @@ const Hunt: React.FC = () => {
             <input
               {...getInputProps({
                 ref: inputRef,
-                placeholder: "Enter clue...",
+                placeholder: "Enter a clue...",
                 className: "clue-input",
               })}
             />
-
             {isOpen && filteredClues.length > 0 && (
               <ul {...getMenuProps()} className="clue-dropdown">
                 {filteredClues.map((clue, index) => (
                   <li
-                    key={clue.name}
+                    key={`${clue.name}-${index}`}
                     {...getItemProps({
                       item: clue,
                       index,
@@ -255,8 +463,7 @@ const Hunt: React.FC = () => {
                       },
                     })}
                   >
-                    {clue.name} ({clue.distance} map
-                    {clue.distance > 1 ? "s" : ""})
+                    {clue.name} ({clue.distance} map{clue.distance > 1 ? "s" : ""})
                   </li>
                 ))}
               </ul>

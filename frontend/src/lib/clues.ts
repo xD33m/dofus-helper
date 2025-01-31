@@ -10,6 +10,8 @@ type CluesInDirection = {
   yPos: number;
 }[];
 
+// TODO: Filter out coordinates that were already visited (reset on start position click?)
+
 export function matchClues(
   ocrString: string,
   directionClues: CluesInDirection

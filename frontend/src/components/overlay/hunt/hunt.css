@@ -14,7 +14,7 @@
 .coordinates {
   display: flex;
   gap: 10px;
-  margin-top: 30px;
+  margin-top: 20px;
 }
 
 /* Coordinate inputs (X/Y) */

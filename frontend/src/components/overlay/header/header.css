@@ -2,18 +2,38 @@
   -webkit-app-region: drag;
   background: rgba(62, 64, 90, 0.506);
   color: white;
-  overflow: hidden;
   font-size: 13px;
   height: 20px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 5px;
-  position: fixed;
+  position: relative;
   width: 100%;
   z-index: 1;
 }
 
-input[type="checkbox"] {
+.header-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  -webkit-app-region: drag;
+}
+
+.header-title {
+  -webkit-app-region: drag;
+}
+
+.header-right {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
   -webkit-app-region: no-drag;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  opacity: 0.7;
+}
+
+.header-right:hover {
+  opacity: 1;
 }

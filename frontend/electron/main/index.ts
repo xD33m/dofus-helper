@@ -182,6 +182,7 @@ ipcMain.on("resize-window", (event, { width, height }) => {
 });
 
 async function captureAndReadOCR(lang = "fra", crop) {
+  console.log("🖼️ OCR Lang", lang);
   const debugFilename = path.join(
     process.env.HOME || process.cwd(),
     "\\Pictures\\Dofus-OCR",

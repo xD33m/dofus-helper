@@ -26,6 +26,7 @@ export function matchClues(
           .toLowerCase()
           .replace(/œ/g, "oe") // Convert "œ" to "oe"
           .replace(/\b(ex cours|encourrs|enesues|en cours|encours|encours q)\b/gi, "") // Remove "encours" and "encours q"
+          .replace(/\b(wurm|lauft|laut|läuft|laurtq|um so)\b/gi, "") // Remove "encours" and "encours q"
           .replace(/\bq\b/gi, "") // Remove any leftover standalone "q"
           .replace(/\b\d+\b/g, "") // Remove standalone numbers
           .replace(/[^a-z\s]/gi, "") // Remove special characters
@@ -34,8 +35,8 @@ export function matchClues(
     .filter(
       (line) =>
         line.length > 0 && // Remove empty lines
-        !line.startsWith("etape") && // Ignore "Étape" lines
-        !line.startsWith("départ") && // Ignore "Départ" lines
+        !line.includes("etape") && // Ignore "Étape" lines
+        !line.includes("départ") && // Ignore "Départ" lines
         !line.includes("essais restants") // Ignore "essais restants"
     );
 
@@ -53,7 +54,7 @@ export function matchClues(
   // Step 3: Use Fuse.js to check if an OCR line is a valid clue
   const fuseAllClues = new Fuse(normalizedAllClues, {
     keys: ["normalizedName"],
-    threshold: 0.5, // Lower = stricter matching
+    threshold: 0.3, // Lower = stricter matching
     includeScore: true,
     minMatchCharLength: 3,
   });
@@ -67,7 +68,7 @@ export function matchClues(
 
     console.log("🔍 OCR Line:", ocrLine, results);
 
-    if (results.length > 0 && results[0].score !== undefined && results[0].score < 0.5) {
+    if (results.length > 0 && results[0].score !== undefined && results[0].score < 0.3) {
       lastValidClueText = results[0].item.normalizedName; // Store last valid clue text
       console.log("✅ Last detected clue:", lastValidClueText);
       break; // Stop once the last clue is found

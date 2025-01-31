@@ -84,8 +84,10 @@ const Hunt: React.FC = () => {
   useEffect(() => {
     setClueLang(LANGUAGES[language].clueLang);
     setOcrLang(LANGUAGES[language].ocrLang);
-    console.log(`🌐 Language set to ${language}. ClueLang: ${clueLang}, OCRLang: ${ocrLang}`);
-  }, [language, clueLang, ocrLang]);
+    console.log(
+      `🌐 Language set to ${language}. ClueLang: ${LANGUAGES[language].clueLang}, OCRLang: ${LANGUAGES[language].ocrLang}`
+    );
+  }, [language]);
 
   // Load clue data whenever clueLang changes
   useEffect(() => {
@@ -117,19 +119,19 @@ const Hunt: React.FC = () => {
   useEffect(() => {
     if (window?.ipcRenderer) {
       const keyPressHandler = (_event: any, direction: "up" | "down" | "left" | "right") => {
-        handleDirection(direction);
+        handleDirectionWithOCR(direction);
       };
 
       window.ipcRenderer.on("key-press", keyPressHandler);
+      console.log("🔑 IPC Keypress listener added.");
 
       // Cleanup listener on unmount
-      // TODO: is bugged on hot reload
       // return () => {
-      //   window.ipcRenderer.removeListener("key-press", keyPressHandler);
-      //   console.log("🔑 Global keypress listeners removed.");
-      // };
+      //           window.ipcRenderer.removeListener("key-press", keyPressHandler);
+      //           console.log("🔑 Global keypress listeners removed.");
+      //       };
     }
-  }, []); // Removed dependency on window.ipcRenderer as it's typically stable
+  }, []); // Empty dependency array ensures this runs once on mount
 
   // -----------------------------------------------------
   // 3) Update clues when direction or coordinates change
@@ -158,15 +160,16 @@ const Hunt: React.FC = () => {
   }, [activeDirection, coordinates]);
 
   // -----------------------------------------------------
-  // 4) Handle Direction
+  // 4) Handle Direction with OCR (Triggered via IPC Keypresses)
   // -----------------------------------------------------
-  const handleDirection = (direction: "up" | "down" | "left" | "right") => {
-    console.log("🔀 Handling direction:", direction);
+  const handleDirectionWithOCR = (direction: "up" | "down" | "left" | "right") => {
+    console.log("🔀 Handling direction with OCR:", direction);
     setActiveDirection(direction);
-    inputRef.current?.focus();
 
     if (!window?.ipcRenderer) {
       console.error("ipcRenderer not available.");
+      setErrorMessage("OCR functionality unavailable.");
+      setTimeout(() => setErrorMessage(""), 4000);
       return;
     }
 
@@ -179,6 +182,7 @@ const Hunt: React.FC = () => {
       if (isNaN(currentX) || isNaN(currentY)) {
         console.error("Invalid coordinates:", prevCoords);
         setErrorMessage("Invalid coordinates.");
+        setTimeout(() => setErrorMessage(""), 4000);
         return prevCoords; // Keep the coordinates unchanged
       }
 
@@ -230,7 +234,47 @@ const Hunt: React.FC = () => {
   };
 
   // -----------------------------------------------------
-  // 5) Handle Coordinate Change
+  // 5) Handle Direction Manually (Triggered via Arrow Button Clicks)
+  // -----------------------------------------------------
+  const handleDirectionManual = useCallback(
+    (direction: "up" | "down" | "left" | "right") => {
+      console.log("🔀 Handling direction manually:", direction);
+      setActiveDirection(direction);
+
+      if (!coordinates.x || !coordinates.y) {
+        console.error("Coordinates are required for manual input.");
+        setErrorMessage("Set coordinates before selecting a direction.");
+        setTimeout(() => setErrorMessage(""), 4000);
+        return;
+      }
+
+      const newClues = getCluesInDirectionWithMetadata(
+        Number(coordinates.x),
+        Number(coordinates.y),
+        direction
+      );
+
+      setCluesInDirection(newClues);
+      setFilteredClues(newClues);
+      console.log("🔍 Clues updated based on manual direction:", newClues);
+
+      if (newClues.length === 0) {
+        console.warn("No clues found in this direction.");
+        setErrorMessage("No clues found in this direction.");
+        setSelectedClueDetails(null);
+        setTimeout(() => setErrorMessage(""), 4000);
+      } else {
+        setErrorMessage("");
+      }
+
+      // Focus the input field for manual entry
+      inputRef.current?.focus();
+    },
+    [coordinates]
+  );
+
+  // -----------------------------------------------------
+  // 6) Handle Coordinate Change
   // -----------------------------------------------------
   const handleCoordinateChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>, axis: "x" | "y") => {
@@ -248,7 +292,7 @@ const Hunt: React.FC = () => {
   );
 
   // -----------------------------------------------------
-  // 6) Handle Input Value Change for Downshift
+  // 7) Handle Input Value Change for Downshift
   // -----------------------------------------------------
   const handleInputValueChange = useCallback(
     (inputValue?: string) => {
@@ -268,7 +312,7 @@ const Hunt: React.FC = () => {
   );
 
   // -----------------------------------------------------
-  // 7) Handle Clue Selection
+  // 8) Handle Clue Selection
   // -----------------------------------------------------
   const handleSelectClue = useCallback(
     (selectedClue: Clue, downshiftHelpers: any) => {
@@ -339,7 +383,7 @@ const Hunt: React.FC = () => {
         <div className="dpad-row">
           <button
             className={`dpad-button ${activeDirection === "up" ? "active" : ""}`}
-            onClick={() => handleDirection("up")}
+            onClick={() => handleDirectionManual("up")}
             aria-label="Up"
           >
             <FaArrowUp size={20} />
@@ -348,7 +392,7 @@ const Hunt: React.FC = () => {
         <div className="dpad-row">
           <button
             className={`dpad-button ${activeDirection === "left" ? "active" : ""}`}
-            onClick={() => handleDirection("left")}
+            onClick={() => handleDirectionManual("left")}
             aria-label="Left"
           >
             <FaArrowLeft size={20} />
@@ -356,7 +400,7 @@ const Hunt: React.FC = () => {
           <button className="dpad-center" aria-hidden="true" />
           <button
             className={`dpad-button ${activeDirection === "right" ? "active" : ""}`}
-            onClick={() => handleDirection("right")}
+            onClick={() => handleDirectionManual("right")}
             aria-label="Right"
           >
             <FaArrowRight size={20} />
@@ -365,7 +409,7 @@ const Hunt: React.FC = () => {
         <div className="dpad-row">
           <button
             className={`dpad-button ${activeDirection === "down" ? "active" : ""}`}
-            onClick={() => handleDirection("down")}
+            onClick={() => handleDirectionManual("down")}
             aria-label="Down"
           >
             <FaArrowDown size={20} />

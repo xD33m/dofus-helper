@@ -10,8 +10,8 @@ import { matchClues } from "@/lib/clues";
 
 // Language configurations
 const LANGUAGES = {
-  fr: { clueLang: "fr", ocrLang: "fra", flag: "🇫🇷" },
-  de: { clueLang: "de", ocrLang: "deu", flag: "🇩🇪" },
+  fr: { clueLang: "fr", ocrLang: "fra", flag: "FR" },
+  de: { clueLang: "de", ocrLang: "deu", flag: "DE" },
 };
 
 export type Clue = {
@@ -474,45 +474,39 @@ const Hunt: React.FC = () => {
 
       {/* Coordinates and New Buttons */}
       <div className="coordinates">
-        <input
-          placeholder="X"
-          type="number"
-          value={coordinates.x}
-          onChange={(e) => handleCoordinateChange(e, "x")}
-        />
-        <input
-          placeholder="Y"
-          type="number"
-          value={coordinates.y}
-          onChange={(e) => handleCoordinateChange(e, "y")}
-        />
-        {/* New Buttons */}
-        <button
-          className="ocr-button"
-          onClick={handleSetCurrentLocationFromOCR}
-          title="Set Current Location from OCR"
-          aria-label="Set Current Location from OCR"
-        >
-          📍
-        </button>
-        <button
-          className="ocr-button"
-          onClick={handleSetStartingPointFromOCR}
-          title="Set Starting Point from OCR"
-          aria-label="Set Starting Point from OCR"
-        >
-          🏁
-        </button>
+        <span className="x-container">
+          <input
+            placeholder="X"
+            type="number"
+            value={coordinates.x}
+            onChange={(e) => handleCoordinateChange(e, "x")}
+          />
+          <button
+            className="ocr-button ocr-button-current"
+            onClick={handleSetCurrentLocationFromOCR}
+            title="Set Current Location from OCR"
+            aria-label="Set Current Location from OCR"
+          >
+            📍
+          </button>
+        </span>
+        <span className="y-container ">
+          <input
+            placeholder="Y"
+            type="number"
+            value={coordinates.y}
+            onChange={(e) => handleCoordinateChange(e, "y")}
+          />
+          <button
+            className="ocr-button ocr-button-start"
+            onClick={handleSetStartingPointFromOCR}
+            title="Set Starting Point from OCR"
+            aria-label="Set Starting Point from OCR"
+          >
+            🏁
+          </button>
+        </span>
       </div>
-
-      {/* Display Starting Coordinates (Optional) */}
-      {startingCoordinates.x && startingCoordinates.y && (
-        <div className="starting-coordinates">
-          <span>
-            Starting Point: [{startingCoordinates.x}, {startingCoordinates.y}]
-          </span>
-        </div>
-      )}
 
       {/* D-Pad */}
       <div className="dpad-container">

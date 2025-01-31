@@ -1,6 +1,5 @@
 .content {
   background: rgba(34, 33, 43, 0.6);
-  min-height: 100px;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -11,6 +10,7 @@
 .search-container {
   position: relative;
   width: 250px;
+  margin: 20px;
 }
 
 .search-icon {
@@ -19,6 +19,7 @@
   left: 10px;
   transform: translateY(-50%);
   color: #aaa;
+  width: 15px;
 }
 
 .search-input {
@@ -28,7 +29,7 @@
   background: rgba(34, 33, 43, 0.5);
   color: rgba(255, 255, 255, 0.8);
   border-radius: 4px;
-  height: 40px;
+  height: 35px;
 }
 
 .search-input:focus {
@@ -38,7 +39,6 @@
 }
 
 .result-container {
-  margin-top: 10px;
   width: 250px;
 }
 

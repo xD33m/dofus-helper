@@ -15,7 +15,7 @@ const LANGUAGES = {
   de: { clueLang: "de", ocrLang: "deu", flag: "🇩🇪" },
 };
 
-type Clue = {
+export type Clue = {
   name: string;
   distance: number;
   xPos: number;

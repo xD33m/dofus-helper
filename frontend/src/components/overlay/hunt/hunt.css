@@ -13,6 +13,7 @@
 /* Coordinates container */
 .coordinates {
   display: flex;
+  align-items: center;
   gap: 10px;
   margin-top: 20px;
 }
@@ -211,4 +212,23 @@
 
 .language-switch button:hover {
   background-color: #5a5d88;
+}
+
+.ocr-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px; /* Adjust as needed */
+  margin-left: 5px;
+  padding: 2px;
+}
+
+.ocr-button:hover {
+  opacity: 0.7;
+}
+
+.starting-coordinates {
+  font-size: 12px;
+  color: #555;
+  margin-bottom: 10px;
 }

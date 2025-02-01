@@ -27,7 +27,7 @@ export function matchClues(
       line
         .toLowerCase()
         .replace(/œ/g, "oe")
-        .replace(/\b(ocre|ex cours|encourrs|enesues|en cours|encours|encours q)\b/gi, "")
+        .replace(/\b(acer|ocre|ex cours|encourrs|enesues|en cours|encours|encours q)\b/gi, "")
         .replace(/\b(wurm|lauft|laut|läuft|laurtq|um so)\b/gi, "")
         .replace(/\bq\b/gi, "")
         .replace(/\b\d+\b/g, "") // remove standalone numbers
@@ -39,7 +39,8 @@ export function matchClues(
         line.length > 0 &&
         !line.includes("etape") &&
         !line.includes("départ") &&
-        !line.includes("essais restants")
+        !line.includes("essais restants") &&
+        !line.includes("niveau")
     );
 
   console.log("🔠 Normalized OCR Lines:", normalizedOCRLines);

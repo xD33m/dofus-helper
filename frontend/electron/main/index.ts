@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, ipcMain, globalShortcut } from "electron";
+import { app, BrowserWindow, shell, ipcMain, globalShortcut, screen } from "electron";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -27,6 +27,7 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
 
 // Application state
 let win: BrowserWindow | null = null;
+let overlayWindow: BrowserWindow | null = null;
 
 // Application setup
 if (!app.requestSingleInstanceLock()) {
@@ -141,6 +142,7 @@ app.whenReady().then(() => {
 
 app.on("window-all-closed", () => {
   win = null;
+  overlayWindow = null;
   if (process.platform !== "darwin") app.quit();
 });
 
@@ -221,3 +223,61 @@ async function captureAndReadOCR(
 
   return text;
 }
+
+function createOverlayWindow() {
+  // Get the primary display's size.
+  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+  overlayWindow = new BrowserWindow({
+    width,
+    height,
+    x: 0,
+    y: 0,
+    transparent: true,
+    frame: false,
+    fullscreen: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    resizable: false,
+    movable: false,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+    },
+  });
+
+  if (VITE_DEV_SERVER_URL) {
+    // Remove any trailing slash from the dev server URL.
+    const devUrl = VITE_DEV_SERVER_URL.replace(/\/$/, "");
+    const overlayUrl = `${devUrl}/overlay.html`;
+    console.log("Loading overlay from dev URL:", overlayUrl);
+    overlayWindow.loadURL(overlayUrl);
+  } else {
+    // In production, load overlay.html from the built renderer folder.
+    const overlayHtml = path.join(RENDERER_DIST, "overlay.html");
+    overlayWindow.loadFile(overlayHtml);
+  }
+
+  overlayWindow.setMenuBarVisibility(false);
+}
+
+// Listen for the crop coordinates from the overlay
+ipcMain.on("crop-selection-complete", (event, cropZone) => {
+  console.log("Crop zone received:", cropZone);
+  // Here you can forward the crop zone to your mainWindow via IPC,
+  // or store it in a shared state for later use in OCR calls.
+  if (win) {
+    win.webContents.send("update-crop-zone", cropZone);
+  }
+  // Hide or destroy the overlay window after selection:
+  if (overlayWindow) {
+    overlayWindow.close();
+    overlayWindow = null;
+  }
+});
+
+// Expose a way to show the overlay (for example, when the user clicks the ⿲ button)
+ipcMain.on("show-crop-overlay", () => {
+  if (!overlayWindow) {
+    createOverlayWindow();
+  }
+});

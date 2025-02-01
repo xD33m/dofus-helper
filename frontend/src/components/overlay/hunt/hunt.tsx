@@ -64,6 +64,10 @@ const Hunt: React.FC = () => {
   const [selectedClueDetails, setSelectedClueDetails] = useState<SelectedClueDetails>(null);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [cropZone, setCropZone] = useState<CropZone>(null);
+  const cropZoneRef = useRef<CropZone>(null);
+  useEffect(() => {
+    cropZoneRef.current = cropZone;
+  }, [cropZone]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -81,6 +85,7 @@ const Hunt: React.FC = () => {
     const handler = (_event: any, crop: CropZone) => {
       console.log("Received crop zone from overlay:", crop);
       setCropZone(crop);
+      cropZoneRef.current = crop;
     };
     window.ipcRenderer.on("update-crop-zone", handler);
     // return () => {
@@ -172,58 +177,55 @@ const Hunt: React.FC = () => {
     window?.ipcRenderer.send("show-crop-overlay");
   }, []);
 
-  const handleDirectionWithOCR = useCallback(
-    (direction: "up" | "down" | "left" | "right") => {
-      console.log("🔀 Handling direction with OCR:", direction);
-      setActiveDirection(direction);
-      if (!window?.ipcRenderer) {
-        console.error("ipcRenderer not available.");
-        setErrorMessage("OCR functionality unavailable.");
+  const handleDirectionWithOCR = useCallback((direction: "up" | "down" | "left" | "right") => {
+    console.log("🔀 Handling direction with OCR:", direction);
+    setActiveDirection(direction);
+    if (!window?.ipcRenderer) {
+      console.error("ipcRenderer not available.");
+      setErrorMessage("OCR functionality unavailable.");
+      setTimeout(() => setErrorMessage(""), 4000);
+      return;
+    }
+    setCoordinates((prevCoords) => {
+      const currentX = Number(prevCoords.x);
+      const currentY = Number(prevCoords.y);
+      if (isNaN(currentX) || isNaN(currentY)) {
+        console.error("Invalid coordinates:", prevCoords);
+        setErrorMessage("Invalid coordinates.");
         setTimeout(() => setErrorMessage(""), 4000);
-        return;
-      }
-      setCoordinates((prevCoords) => {
-        const currentX = Number(prevCoords.x);
-        const currentY = Number(prevCoords.y);
-        if (isNaN(currentX) || isNaN(currentY)) {
-          console.error("Invalid coordinates:", prevCoords);
-          setErrorMessage("Invalid coordinates.");
-          setTimeout(() => setErrorMessage(""), 4000);
-          return prevCoords;
-        }
-        const cluesInDir = getCluesInDirectionWithMetadata(currentX, currentY, direction);
-        setCluesInDirection(cluesInDir);
-        setFilteredClues(cluesInDir);
-        if (cluesInDir.length === 0) {
-          setErrorMessage("No clues found in this direction.");
-          setSelectedClueDetails(null);
-          setTimeout(() => setErrorMessage(""), 4000);
-        } else {
-          setErrorMessage("");
-        }
-        const crop = cropZone || { left: 0, top: 80, width: 300, height: 450 };
-        window.ipcRenderer
-          .invoke("read-dofus-ocr", {
-            crop,
-            lang: ocrLangRef.current,
-          })
-          .then((ocrString: string) => {
-            console.log("🔠 OCR Text:", ocrString);
-            const { clue, error } = matchClues(ocrString, cluesInDir);
-            if (clue) {
-              console.log("🔍 Clue Detected:", clue);
-              handleSelectClue(clue, { clearSelection: () => {} });
-            } else if (error) {
-              setErrorMessage(error);
-              setSelectedClueDetails(null);
-              setTimeout(() => setErrorMessage(""), 4000);
-            }
-          });
         return prevCoords;
-      });
-    },
-    [cropZone]
-  );
+      }
+      const cluesInDir = getCluesInDirectionWithMetadata(currentX, currentY, direction);
+      setCluesInDirection(cluesInDir);
+      setFilteredClues(cluesInDir);
+      if (cluesInDir.length === 0) {
+        setErrorMessage("No clues found in this direction.");
+        setSelectedClueDetails(null);
+        setTimeout(() => setErrorMessage(""), 4000);
+      } else {
+        setErrorMessage("");
+      }
+      const crop = cropZoneRef.current || { left: 0, top: 80, width: 300, height: 450 };
+      window.ipcRenderer
+        .invoke("read-dofus-ocr", {
+          crop,
+          lang: ocrLangRef.current,
+        })
+        .then((ocrString: string) => {
+          console.log("🔠 OCR Text:", ocrString);
+          const { clue, error } = matchClues(ocrString, cluesInDir);
+          if (clue) {
+            console.log("🔍 Clue Detected:", clue);
+            handleSelectClue(clue, { clearSelection: () => {} });
+          } else if (error) {
+            setErrorMessage(error);
+            setSelectedClueDetails(null);
+            setTimeout(() => setErrorMessage(""), 4000);
+          }
+        });
+      return prevCoords;
+    });
+  }, []);
 
   const handleDirectionManual = useCallback(
     (direction: "up" | "down" | "left" | "right") => {

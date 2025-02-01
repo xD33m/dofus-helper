@@ -27,7 +27,7 @@ export function matchClues(
       line
         .toLowerCase()
         .replace(/œ/g, "oe")
-        .replace(/\b(ocre|ex cours|encourrs|enesues|en cours|encours|encours q)\b/gi, "")
+        .replace(/\b(acer|ocre|ex cours|encourrs|enesues|en cours|encours|encours q)\b/gi, "")
         .replace(/\b(wurm|lauft|laut|läuft|laurtq|um so)\b/gi, "")
         .replace(/\bq\b/gi, "")
         .replace(/\b\d+\b/g, "") // remove standalone numbers

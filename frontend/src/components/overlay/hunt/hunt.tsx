@@ -19,7 +19,7 @@ export type Clue = {
   distance: number;
   xPos: number;
   yPos: number;
-  normalizedName: string; // Assuming normalizedName exists
+  normalizedName?: string;
 };
 
 type SelectedClueDetails = {
@@ -565,7 +565,7 @@ const Hunt: React.FC = () => {
 
       {/* Clue Dropdown */}
       <Downshift
-        items={filteredClues}
+        // items={filteredClues}
         itemToString={(item) => (item ? item.name : "")}
         onChange={(selection, downshiftHelpers) => handleSelectClue(selection, downshiftHelpers)}
         onInputValueChange={handleInputValueChange}

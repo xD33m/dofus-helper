@@ -16,11 +16,14 @@ const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Set up paths
-const MAIN_DIST = path.join(__dirname, "../dist-electron");
-const RENDERER_DIST = path.join(__dirname, "../dist");
-const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
-const preload = path.join(__dirname, "../preload/index.mjs");
-const indexHtml = path.join(RENDERER_DIST, "index.html");
+process.env.APP_ROOT = path.join(__dirname, "../..");
+
+export const MAIN_DIST = path.join(process.env.APP_ROOT, "dist-electron");
+export const RENDERER_DIST = path.join(process.env.APP_ROOT, "dist");
+export const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
+process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
+  ? path.join(process.env.APP_ROOT, "public")
+  : RENDERER_DIST;
 
 // Application state
 let win: BrowserWindow | null = null;
@@ -34,13 +37,16 @@ if (!app.requestSingleInstanceLock()) {
 // Disable GPU Acceleration for Windows 7
 if (os.release().startsWith("6.1")) app.disableHardwareAcceleration();
 
+const preload = path.join(__dirname, "../preload/index.mjs");
+const indexHtml = path.join(RENDERER_DIST, "index.html");
+
 // Set application name for Windows 10+ notifications
 if (process.platform === "win32") app.setAppUserModelId(app.getName());
 
 async function createWindow() {
   win = new BrowserWindow({
     title: "Main window",
-    icon: path.join(RENDERER_DIST, "favicon.ico"),
+    icon: path.join(process.env.VITE_PUBLIC, "favicon.ico"),
     frame: false,
     resizable: true,
     transparent: true,
@@ -181,13 +187,12 @@ ipcMain.on("resize-window", (event, { width, height }) => {
   }
 });
 
-async function captureAndReadOCR(lang = "fra", crop) {
+async function captureAndReadOCR(
+  lang = "fra",
+  crop?: { left: number; top: number; width: number; height: number }
+) {
   console.log("🖼️ OCR Lang", lang);
-  const debugFilename = path.join(
-    process.env.HOME || process.cwd(),
-    "\\Pictures\\Dofus-OCR",
-    `dofus-ocr-debug-1.png`
-  );
+  const debugFilename = path.join(app.getPath("downloads"), `dofus-ocr-debug-1.png`);
 
   // Capture either full screen or a crop region
   const imgBuffer = await screenshotDesktop({
@@ -195,7 +200,7 @@ async function captureAndReadOCR(lang = "fra", crop) {
   });
 
   const cropped = sharp(imgBuffer)
-    .extract(crop)
+    .extract(crop || { left: 0, top: 80, width: 300, height: 450 })
     .gamma(3)
     .greyscale()
     .normalise()

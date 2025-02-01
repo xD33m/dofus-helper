@@ -27,7 +27,7 @@ export function matchClues(
       line
         .toLowerCase()
         .replace(/œ/g, "oe")
-        .replace(/\b(ex cours|encourrs|enesues|en cours|encours|encours q)\b/gi, "")
+        .replace(/\b(ocre|ex cours|encourrs|enesues|en cours|encours|encours q)\b/gi, "")
         .replace(/\b(wurm|lauft|laut|läuft|laurtq|um so)\b/gi, "")
         .replace(/\bq\b/gi, "")
         .replace(/\b\d+\b/g, "") // remove standalone numbers
@@ -141,7 +141,7 @@ export function matchClues(
     }
 
     // Could keep going with more lines if your OCR frequently splits it more,
-    // but usually 2-3 lines is enough for typical “In Fischgräten behauener Felsen”.
+    // but usually 2-3 lines is enough for typical "In Fischgräten behauener Felsen".
   }
 
   // If we never found a match

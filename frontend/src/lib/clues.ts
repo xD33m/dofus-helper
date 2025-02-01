@@ -39,7 +39,8 @@ export function matchClues(
         line.length > 0 &&
         !line.includes("etape") &&
         !line.includes("départ") &&
-        !line.includes("essais restants")
+        !line.includes("essais restants") &&
+        !line.includes("niveau")
     );
 
   console.log("🔠 Normalized OCR Lines:", normalizedOCRLines);

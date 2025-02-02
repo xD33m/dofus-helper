@@ -79,6 +79,8 @@ export function createNotificationWindow() {
       contextIsolation: false,
     },
   });
+  notificationWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  notificationWindow.setAlwaysOnTop(true, "screen-saver", 1);
 
   if (VITE_DEV_SERVER_URL) {
     const devUrl = VITE_DEV_SERVER_URL.replace(/\/$/, "");

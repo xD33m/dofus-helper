@@ -83,7 +83,6 @@ export function createNotificationWindow() {
   if (VITE_DEV_SERVER_URL) {
     const devUrl = VITE_DEV_SERVER_URL.replace(/\/$/, "");
     const notificationUrl = `${devUrl}/notification.html`;
-    console.log("Loading notification from dev URL:", notificationUrl);
     notificationWindow.loadURL(notificationUrl);
   } else {
     const notificationHtml = path.join(RENDERER_DIST, "notification.html");
@@ -120,7 +119,6 @@ export function setupNotificationHandlers() {
 
   // Show notification: update content, slide in if needed, and (re)start the auto-dismiss timer.
   ipcMain.on("show-notification", (event, details) => {
-    console.log("Received show-notification with details:", details?.direction);
     if (!notificationWindow) {
       pendingNotificationDetails = details;
       createNotificationWindow();

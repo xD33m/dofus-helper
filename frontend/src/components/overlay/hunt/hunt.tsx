@@ -147,7 +147,6 @@ const Hunt: React.FC = () => {
   useEffect(() => {
     setClueLang(LANGUAGES[language].clueLang);
     setOcrLang(LANGUAGES[language].ocrLang);
-    // send notification 
     console.log(
       `🌐 Language set to ${language}. ClueLang: ${LANGUAGES[language].clueLang}, OCRLang: ${LANGUAGES[language].ocrLang}`
     );

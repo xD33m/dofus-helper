@@ -1,7 +1,13 @@
-// notification.tsx
 import React, { useEffect, useState } from "react";
 import { ipcRenderer } from "electron";
-import { FaArrowUp, FaArrowDown, FaArrowLeft, FaArrowRight } from "react-icons/fa";
+import { 
+  FaArrowUp, 
+  FaArrowDown, 
+  FaArrowLeft, 
+  FaArrowRight, 
+  FaExclamationTriangle 
+} from "react-icons/fa";
+import { GiTreasureMap } from "react-icons/gi";
 import "./notification.css";
 
 type NotificationDetails = {
@@ -37,16 +43,26 @@ const Notification: React.FC = () => {
     };
     return icons[direction];
   };
-  
-  
+
+  const renderLeftIcon = () => {
+    if (details.direction) {
+      return <GiTreasureMap className="left-icon" />;
+    } else {
+      return <FaExclamationTriangle className="left-icon" />;
+    }
+  };
+
   return (
     <div className="notification">
-      <span className="selected-clue-name">{details.clue}</span>
-      <span className="selected-destination">
-        <span className="direction-icon">{renderDirectionIcon(details.direction)}</span>
-        <span>{details.distance}</span>
-        <span className="selected-coordinates">{details.coordinates}</span>
-      </span>
+      <span className="left-icon-container">{renderLeftIcon()}</span>
+      <div className="notification-content">
+        <span className="selected-clue-name">{details.clue}</span>
+        <span className="selected-destination">
+          <span className="direction-icon">{renderDirectionIcon(details.direction)}</span>
+          <span>{details.distance}</span>
+          <span className="selected-coordinates">{details.coordinates}</span>
+        </span>
+      </div>
     </div>
   );
 };

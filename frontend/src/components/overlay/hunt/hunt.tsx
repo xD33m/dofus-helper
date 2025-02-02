@@ -64,6 +64,13 @@ const Hunt: React.FC = () => {
   const [selectedClueDetails, setSelectedClueDetails] = useState<SelectedClueDetails>(null);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [cropZone, setCropZone] = useState<CropZone>(null);
+
+  const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(true);
+
+  const toggleNotifications = useCallback(() => {
+     setNotificationsEnabled(prev => !prev);
+  }, []);
+    
   const cropZoneRef = useRef<CropZone>(null);
   useEffect(() => {
     cropZoneRef.current = cropZone;
@@ -91,12 +98,23 @@ const Hunt: React.FC = () => {
   };
 
   useEffect(() => {
-    if (selectedClueDetails && window?.ipcRenderer) {
+    if (notificationsEnabled && selectedClueDetails && window?.ipcRenderer) {
       console.log("🔔 Sending notification");
       window.ipcRenderer.send("show-notification", selectedClueDetails);
     }
   }, [selectedClueDetails]);
 
+   useEffect(() => {
+    if (errorMessage && window?.ipcRenderer) {
+      console.log("⚠️ Sending error notification:");
+      window.ipcRenderer.send("show-notification", {
+        direction: null,
+        distance: "",
+        coordinates: "",
+        clue: errorMessage,
+      });
+    }
+  }, [errorMessage]);
 
   // Listen for the crop zone from the external overlay via IPC.
   useEffect(() => {
@@ -130,7 +148,6 @@ const Hunt: React.FC = () => {
     setClueLang(LANGUAGES[language].clueLang);
     setOcrLang(LANGUAGES[language].ocrLang);
     // send notification 
-    window?.ipcRenderer.send("show-notification", { direction: "up", distance: "1 map", coordinates: "[0; 0]", clue: "Test Clue" });
     console.log(
       `🌐 Language set to ${language}. ClueLang: ${LANGUAGES[language].clueLang}, OCRLang: ${LANGUAGES[language].ocrLang}`
     );
@@ -420,6 +437,11 @@ const Hunt: React.FC = () => {
         </button>
       </div>
 
+      {/* Notifications Toggle */}
+      <button className="notification" onClick={toggleNotifications} aria-label="Toggle Notifications Overlay" tabIndex={-1}>
+        {notificationsEnabled ? "🔔" : "🔕"}
+      </button>
+
       {/* Coordinates and OCR Buttons */}
       <div className="coordinates">
         <span className="x-container">
@@ -518,7 +540,7 @@ const Hunt: React.FC = () => {
       {errorMessage ? (
         <div className="no-clues-message">{errorMessage}</div>
       ) : (
-        selectedClueDetails && (
+        selectedClueDetails && !notificationsEnabled && (
           <div className="selected-clue-details">
             <span className="selected-clue-name">{selectedClueDetails.clue}</span>
             <span className="selected-destination">

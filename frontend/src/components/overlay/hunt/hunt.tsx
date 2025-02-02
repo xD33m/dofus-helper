@@ -105,7 +105,7 @@ const Hunt: React.FC = () => {
   }, [selectedClueDetails]);
 
    useEffect(() => {
-    if (errorMessage && window?.ipcRenderer) {
+    if (notificationsEnabled && errorMessage && window?.ipcRenderer) {
       console.log("⚠️ Sending error notification:");
       window.ipcRenderer.send("show-notification", {
         direction: null,

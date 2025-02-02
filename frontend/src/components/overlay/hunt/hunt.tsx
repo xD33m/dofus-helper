@@ -26,7 +26,7 @@ export type Clue = {
 };
 
 type SelectedClueDetails = {
-  direction: JSX.Element | null;
+  direction: "up" | "down" | "left" | "right" | null;
   distance: string;
   coordinates: string;
   clue: string;
@@ -64,6 +64,13 @@ const Hunt: React.FC = () => {
   const [selectedClueDetails, setSelectedClueDetails] = useState<SelectedClueDetails>(null);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [cropZone, setCropZone] = useState<CropZone>(null);
+
+  const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(true);
+
+  const toggleNotifications = useCallback(() => {
+     setNotificationsEnabled(prev => !prev);
+  }, []);
+    
   const cropZoneRef = useRef<CropZone>(null);
   useEffect(() => {
     cropZoneRef.current = cropZone;
@@ -78,6 +85,36 @@ const Hunt: React.FC = () => {
       minMatchCharLength: 2,
     })
   ).current;
+
+  const renderDirectionIcon = (direction: "up" | "down" | "left" | "right" | null) => {
+    if (!direction) return null;
+    const icons: Record<string, JSX.Element> = {
+      up: <FaArrowUp />,
+      down: <FaArrowDown />,
+      left: <FaArrowLeft />,
+      right: <FaArrowRight />,
+    };
+    return icons[direction];
+  };
+
+  useEffect(() => {
+    if (notificationsEnabled && selectedClueDetails && window?.ipcRenderer) {
+      console.log("🔔 Sending notification");
+      window.ipcRenderer.send("show-notification", selectedClueDetails);
+    }
+  }, [selectedClueDetails]);
+
+   useEffect(() => {
+    if (errorMessage && window?.ipcRenderer) {
+      console.log("⚠️ Sending error notification:");
+      window.ipcRenderer.send("show-notification", {
+        direction: null,
+        distance: "",
+        coordinates: "",
+        clue: errorMessage,
+      });
+    }
+  }, [errorMessage]);
 
   // Listen for the crop zone from the external overlay via IPC.
   useEffect(() => {
@@ -294,16 +331,10 @@ const Hunt: React.FC = () => {
       const travelCommand = `/travel ${selectedClue.xPos},${selectedClue.yPos}`;
       navigator.clipboard.writeText(travelCommand);
       console.log(`📋 Copied Travel Command: ${travelCommand}`);
-      const directionArrow =
-        activeDirection &&
-        {
-          up: <FaArrowUp />,
-          down: <FaArrowDown />,
-          left: <FaArrowLeft />,
-          right: <FaArrowRight />,
-        }[activeDirection];
+      const directionString = activeDirection;
+      
       setSelectedClueDetails({
-        direction: directionArrow,
+        direction: directionString,
         distance: `${selectedClue.distance} map${selectedClue.distance > 1 ? "s" : ""}`,
         coordinates: `[${selectedClue.xPos}; ${selectedClue.yPos}]`,
         clue: selectedClue.name,
@@ -405,6 +436,11 @@ const Hunt: React.FC = () => {
         </button>
       </div>
 
+      {/* Notifications Toggle */}
+      <button className="notification" onClick={toggleNotifications} aria-label="Toggle Notifications Overlay" tabIndex={-1}>
+        {notificationsEnabled ? "🔔" : "🔕"}
+      </button>
+
       {/* Coordinates and OCR Buttons */}
       <div className="coordinates">
         <span className="x-container">
@@ -503,11 +539,11 @@ const Hunt: React.FC = () => {
       {errorMessage ? (
         <div className="no-clues-message">{errorMessage}</div>
       ) : (
-        selectedClueDetails && (
+        selectedClueDetails && !notificationsEnabled && (
           <div className="selected-clue-details">
             <span className="selected-clue-name">{selectedClueDetails.clue}</span>
             <span className="selected-destination">
-              <span className="direction-icon">{selectedClueDetails.direction}</span>
+              <span className="direction-icon">{renderDirectionIcon(selectedClueDetails.direction)}</span>
               <span>{selectedClueDetails.distance}</span>
               <span className="selected-coordinates">{selectedClueDetails.coordinates}</span>
             </span>

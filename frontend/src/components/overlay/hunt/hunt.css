@@ -273,6 +273,28 @@
   background-color: #5a5d88;
 }
 
+/* Notification button */
+.notification {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 15px;
+
+  background-color: #46496f3b;
+  color: #e0e0e0bb;
+  border: none;
+  /* padding: 5px 10px; */
+  font-size: 13px;
+  border-radius: 0 0 0 10px;
+  padding: 6px 8px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.notification:hover {
+  background-color: #5a5d88;
+}
+
 /* Crop overlay covers the entire screen during selection */
 .crop-overlay {
   position: fixed;

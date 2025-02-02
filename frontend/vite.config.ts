@@ -72,12 +72,13 @@ export default defineConfig(({ command }) => {
           port: +url.port,
         };
       })(),
-    // Configure the renderer build to include both index.html and overlay.html.
+    // Configure the renderer build to include multiple entry points.
     build: {
       rollupOptions: {
         input: {
           index: path.resolve(__dirname, "index.html"),
           overlay: path.resolve(__dirname, "overlay.html"),
+          notification: path.resolve(__dirname, "notification.html"),
         },
       },
     },

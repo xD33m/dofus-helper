@@ -8,7 +8,7 @@ const NOTIFICATION_WIDTH = 320;           // notification window width in px
 const NOTIFICATION_HEIGHT = 100;          // notification window height in px
 const INITIAL_Y = -100;                   // initial y-position (off-screen above)
 const FINAL_Y = 10;                       // final y-position when visible
-const ANIMATION_INTERVAL = 16;            // roughly 60 fps
+const ANIMATION_INTERVAL = 4;            // roughly 60 fps
 
 let notificationWindow: BrowserWindow | null = null;
 let pendingNotificationDetails: any = null;

@@ -68,9 +68,9 @@ const Hunt: React.FC = () => {
   const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(true);
 
   const toggleNotifications = useCallback(() => {
-     setNotificationsEnabled(prev => !prev);
+    setNotificationsEnabled((prev) => !prev);
   }, []);
-    
+
   const cropZoneRef = useRef<CropZone>(null);
   useEffect(() => {
     cropZoneRef.current = cropZone;
@@ -104,7 +104,7 @@ const Hunt: React.FC = () => {
     }
   }, [selectedClueDetails]);
 
-   useEffect(() => {
+  useEffect(() => {
     if (notificationsEnabled && errorMessage && window?.ipcRenderer) {
       console.log("⚠️ Sending error notification:");
       window.ipcRenderer.send("show-notification", {
@@ -252,8 +252,7 @@ const Hunt: React.FC = () => {
           console.log("🔠 OCR Text:", ocrString);
           const { clue, error } = matchClues(ocrString, cluesInDir);
           if (clue) {
-            console.log("🔍 Clue Detected:", clue);
-            handleSelectClue(clue, { clearSelection: () => {} });
+            handleSelectClue(clue, { clearSelection: () => {} }, direction);
           } else if (error) {
             setErrorMessage(error);
             setSelectedClueDetails(null);
@@ -324,34 +323,34 @@ const Hunt: React.FC = () => {
     [cluesInDirection, fuse]
   );
 
-  const handleSelectClue = useCallback(
-    (selectedClue: Clue, downshiftHelpers: any) => {
-      if (!selectedClue) return;
-      console.log("✅ Selected Clue:", selectedClue);
-      const travelCommand = `/travel ${selectedClue.xPos},${selectedClue.yPos}`;
-      navigator.clipboard.writeText(travelCommand);
-      console.log(`📋 Copied Travel Command: ${travelCommand}`);
-      const directionString = activeDirection;
-      
-      setSelectedClueDetails({
-        direction: directionString,
-        distance: `${selectedClue.distance} map${selectedClue.distance > 1 ? "s" : ""}`,
-        coordinates: `[${selectedClue.xPos}; ${selectedClue.yPos}]`,
-        clue: selectedClue.name,
-      });
-      setCoordinates({
-        x: selectedClue.xPos.toString(),
-        y: selectedClue.yPos.toString(),
-      });
-      console.log(`📍 Coordinates updated to: (${selectedClue.xPos}, ${selectedClue.yPos})`);
+  const handleSelectClue = (
+    selectedClue: Clue,
+    downshiftHelpers: any,
+    direction: "up" | "down" | "left" | "right" | null
+  ) => {
+    if (!selectedClue) return;
+    console.log("✅ Selected Clue:", selectedClue);
+    const travelCommand = `/travel ${selectedClue.xPos},${selectedClue.yPos}`;
+    navigator.clipboard.writeText(travelCommand);
+    console.log(`📋 Copied Travel Command: ${travelCommand}`);
+
+    setSelectedClueDetails({
+      direction,
+      distance: `${selectedClue.distance} map${selectedClue.distance > 1 ? "s" : ""}`,
+      coordinates: `[${selectedClue.xPos}; ${selectedClue.yPos}]`,
+      clue: selectedClue.name,
+    });
+    setCoordinates({
+      x: selectedClue.xPos.toString(),
+      y: selectedClue.yPos.toString(),
+    });
+    console.log(`📍 Coordinates updated to: (${selectedClue.xPos}, ${selectedClue.yPos})`);
+    setTimeout(() => {
       setActiveDirection(null);
-      setTimeout(() => {
-        downshiftHelpers.clearSelection();
-        setSelectedClueDetails(null);
-      }, 4000);
-    },
-    [activeDirection]
-  );
+      downshiftHelpers.clearSelection();
+      setSelectedClueDetails(null);
+    }, 4000);
+  };
 
   const handleSetCurrentLocationFromOCR = useCallback(() => {
     console.log("📍 Setting Current Location from OCR");
@@ -437,7 +436,12 @@ const Hunt: React.FC = () => {
       </div>
 
       {/* Notifications Toggle */}
-      <button className="notification" onClick={toggleNotifications} aria-label="Toggle Notifications Overlay" tabIndex={-1}>
+      <button
+        className="notification"
+        onClick={toggleNotifications}
+        aria-label="Toggle Notifications Overlay"
+        tabIndex={-1}
+      >
         {notificationsEnabled ? "🔔" : "🔕"}
       </button>
 
@@ -539,11 +543,14 @@ const Hunt: React.FC = () => {
       {errorMessage ? (
         <div className="no-clues-message">{errorMessage}</div>
       ) : (
-        selectedClueDetails && !notificationsEnabled && (
+        selectedClueDetails &&
+        !notificationsEnabled && (
           <div className="selected-clue-details">
             <span className="selected-clue-name">{selectedClueDetails.clue}</span>
             <span className="selected-destination">
-              <span className="direction-icon">{renderDirectionIcon(selectedClueDetails.direction)}</span>
+              <span className="direction-icon">
+                {renderDirectionIcon(selectedClueDetails.direction)}
+              </span>
               <span>{selectedClueDetails.distance}</span>
               <span className="selected-coordinates">{selectedClueDetails.coordinates}</span>
             </span>
@@ -554,7 +561,9 @@ const Hunt: React.FC = () => {
       {/* Downshift Clue Dropdown */}
       <Downshift
         itemToString={(item) => (item ? item.name : "")}
-        onChange={(selection, downshiftHelpers) => handleSelectClue(selection, downshiftHelpers)}
+        onChange={(selection, downshiftHelpers) =>
+          handleSelectClue(selection, downshiftHelpers, activeDirection)
+        }
         onInputValueChange={handleInputValueChange}
       >
         {({ getInputProps, getMenuProps, getItemProps, isOpen, highlightedIndex }) => (

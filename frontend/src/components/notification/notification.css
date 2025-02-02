@@ -1,0 +1,34 @@
+.notification {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  padding: 15px;
+  background-color: rgba(0, 0, 0, 0.8);
+  border-radius: 5px;
+  text-align: center;
+  letter-spacing: 1.5px;
+  font-weight: 500;
+  color: #e0e0e0;
+  gap: 10px;
+  position: relative;
+}
+
+.notification span {
+  display: flex;
+  align-items: center;
+}
+
+.notification .direction-icon {
+  font-size: 22px;
+  color: #ffd194;
+}
+
+.selected-coordinates {
+  color: #ffd194;
+  font-weight: 700;
+}
+
+.selected-destination {
+  gap: 10px;
+}

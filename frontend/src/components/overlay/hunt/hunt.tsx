@@ -26,7 +26,7 @@ export type Clue = {
 };
 
 type SelectedClueDetails = {
-  direction: JSX.Element | null;
+  direction: "up" | "down" | "left" | "right" | null;
   distance: string;
   coordinates: string;
   clue: string;
@@ -79,6 +79,25 @@ const Hunt: React.FC = () => {
     })
   ).current;
 
+  const renderDirectionIcon = (direction: "up" | "down" | "left" | "right" | null) => {
+    if (!direction) return null;
+    const icons: Record<string, JSX.Element> = {
+      up: <FaArrowUp />,
+      down: <FaArrowDown />,
+      left: <FaArrowLeft />,
+      right: <FaArrowRight />,
+    };
+    return icons[direction];
+  };
+
+  useEffect(() => {
+    if (selectedClueDetails && window?.ipcRenderer) {
+      console.log("🔔 Sending notification");
+      window.ipcRenderer.send("show-notification", selectedClueDetails);
+    }
+  }, [selectedClueDetails]);
+
+
   // Listen for the crop zone from the external overlay via IPC.
   useEffect(() => {
     if (!window?.ipcRenderer) return;
@@ -110,6 +129,8 @@ const Hunt: React.FC = () => {
   useEffect(() => {
     setClueLang(LANGUAGES[language].clueLang);
     setOcrLang(LANGUAGES[language].ocrLang);
+    // send notification 
+    window?.ipcRenderer.send("show-notification", { direction: "up", distance: "1 map", coordinates: "[0; 0]", clue: "Test Clue" });
     console.log(
       `🌐 Language set to ${language}. ClueLang: ${LANGUAGES[language].clueLang}, OCRLang: ${LANGUAGES[language].ocrLang}`
     );
@@ -294,16 +315,10 @@ const Hunt: React.FC = () => {
       const travelCommand = `/travel ${selectedClue.xPos},${selectedClue.yPos}`;
       navigator.clipboard.writeText(travelCommand);
       console.log(`📋 Copied Travel Command: ${travelCommand}`);
-      const directionArrow =
-        activeDirection &&
-        {
-          up: <FaArrowUp />,
-          down: <FaArrowDown />,
-          left: <FaArrowLeft />,
-          right: <FaArrowRight />,
-        }[activeDirection];
+      const directionString = activeDirection;
+      
       setSelectedClueDetails({
-        direction: directionArrow,
+        direction: directionString,
         distance: `${selectedClue.distance} map${selectedClue.distance > 1 ? "s" : ""}`,
         coordinates: `[${selectedClue.xPos}; ${selectedClue.yPos}]`,
         clue: selectedClue.name,
@@ -507,7 +522,7 @@ const Hunt: React.FC = () => {
           <div className="selected-clue-details">
             <span className="selected-clue-name">{selectedClueDetails.clue}</span>
             <span className="selected-destination">
-              <span className="direction-icon">{selectedClueDetails.direction}</span>
+              <span className="direction-icon">{renderDirectionIcon(selectedClueDetails.direction)}</span>
               <span>{selectedClueDetails.distance}</span>
               <span className="selected-coordinates">{selectedClueDetails.coordinates}</span>
             </span>

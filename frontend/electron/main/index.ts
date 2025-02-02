@@ -9,18 +9,15 @@ import Tesseract, { createWorker } from "tesseract.js";
 import sharp from "sharp";
 import screenshotDesktop from "screenshot-desktop";
 import pkg from "normalize-unicode-text";
+import { RENDERER_DIST, VITE_DEV_SERVER_URL } from "./config";
+import { setupNotificationHandlers } from "./notification";
 
 const { normalizeUnicodeText } = pkg;
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Set up paths
-process.env.APP_ROOT = path.join(__dirname, "../..");
-
 export const MAIN_DIST = path.join(process.env.APP_ROOT, "dist-electron");
-export const RENDERER_DIST = path.join(process.env.APP_ROOT, "dist");
-export const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
   ? path.join(process.env.APP_ROOT, "public")
   : RENDERER_DIST;
@@ -28,6 +25,7 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
 // Application state
 let win: BrowserWindow | null = null;
 let overlayWindow: BrowserWindow | null = null;
+let notificationWindow: BrowserWindow | null = null;
 
 // Application setup
 if (!app.requestSingleInstanceLock()) {
@@ -138,11 +136,13 @@ ipcMain.handle("read-dofus-ocr", async (_, options: Options) => {
 app.whenReady().then(() => {
   createWindow();
   registerShortcuts();
+  setupNotificationHandlers();
 });
 
 app.on("window-all-closed", () => {
   win = null;
   overlayWindow = null;
+  notificationWindow = null;
   if (process.platform !== "darwin") app.quit();
 });
 

@@ -8,11 +8,8 @@ import { update } from "./update";
 import Tesseract, { createWorker } from "tesseract.js";
 import sharp from "sharp";
 import screenshotDesktop from "screenshot-desktop";
-import pkg from "normalize-unicode-text";
 import { RENDERER_DIST, VITE_DEV_SERVER_URL } from "./config";
 import { setupNotificationHandlers } from "./notification";
-
-const { normalizeUnicodeText } = pkg;
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

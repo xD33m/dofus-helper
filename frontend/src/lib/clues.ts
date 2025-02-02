@@ -130,24 +130,13 @@ export function matchClues(
       }
     }
 
-    // (c) Optionally, line + next 2 lines, if available
-    if (i + 2 < normalizedOCRLines.length) {
-      const combo3 = line + " " + normalizedOCRLines[i + 1] + " " + normalizedOCRLines[i + 2];
-      const match3 = getBestMatchInDirection(combo3);
-      if (match3) {
-        console.log("✅ Three-line match:", combo3, "->", match3);
-        lastValidClueText = match3;
-        break outerLoop;
-      }
-    }
-
     // Could keep going with more lines if your OCR frequently splits it more,
     // but usually 2-3 lines is enough for typical "In Fischgräten behauener Felsen".
   }
 
   // If we never found a match
   if (!lastValidClueText) {
-    return { clue: null, error: "No valid clue found on screen" };
+    return { clue: null, error: "No matching clue found in this direction" };
   }
 
   // --- 7) Now we have the final matched normalized text,

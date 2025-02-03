@@ -10,6 +10,7 @@ import { IoPlaySkipForwardSharp } from "react-icons/io5";
 
 import "./hunt.css";
 import { FaArrowUp, FaArrowDown, FaArrowLeft, FaArrowRight } from "react-icons/fa";
+import { TbBoxAlignBottom, TbBoxAlignTop } from "react-icons/tb";
 
 // Language configurations
 const LANGUAGES = {
@@ -25,12 +26,16 @@ export type Clue = {
   normalizedName?: string;
 };
 
+type notificationPosition = {
+  placement?: "top" | "bottom";
+}
+
 type SelectedClueDetails = {
   direction: "up" | "down" | "left" | "right" | null;
   distance: string;
   coordinates: string;
   clue: string;
-} | null;
+} & notificationPosition | null;
 
 type CropZone = {
   left: number;
@@ -66,6 +71,7 @@ const Hunt: React.FC = () => {
   const [cropZone, setCropZone] = useState<CropZone>(null);
 
   const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(true);
+  const [notificationPosition, setNotificationPosition] = useState<"top" | "bottom">("bottom");
 
   const toggleNotifications = useCallback(() => {
     setNotificationsEnabled((prev) => !prev);
@@ -100,6 +106,7 @@ const Hunt: React.FC = () => {
   useEffect(() => {
     if (notificationsEnabled && selectedClueDetails && window?.ipcRenderer) {
       console.log("🔔 Sending notification");
+      selectedClueDetails.placement = notificationPosition;
       window.ipcRenderer.send("show-notification", selectedClueDetails);
     }
   }, [selectedClueDetails]);
@@ -112,6 +119,7 @@ const Hunt: React.FC = () => {
         distance: "",
         coordinates: "",
         clue: errorMessage,
+        placement: notificationPosition
       });
     }
   }, [errorMessage]);
@@ -436,14 +444,27 @@ const Hunt: React.FC = () => {
       </div>
 
       {/* Notifications Toggle */}
-      <button
-        className="notification"
-        onClick={toggleNotifications}
-        aria-label="Toggle Notifications Overlay"
-        tabIndex={-1}
-      >
-        {notificationsEnabled ? "🔔" : "🔕"}
-      </button>
+      <div className="notification-container">
+        <button
+          type="button"
+          className="notification"
+          onClick={toggleNotifications}
+          aria-label="Toggle Notifications Overlay"
+          title="Toggle Notifications Overlay"
+          tabIndex={-1}
+        >
+          {notificationsEnabled ? "🔔" : "🔕"}
+        </button>
+        <button
+          type="button"
+          className="notification notification-position"
+          onClick={() => setNotificationPosition((prev) => (prev === "top" ? "bottom" : "top"))}
+          aria-label="Toggle Notification Position"
+          title="Toggle Notification Position"
+          tabIndex={-1}>
+          {notificationPosition === "top" ? <TbBoxAlignTop /> : <TbBoxAlignBottom />}
+        </button>
+      </div>
 
       {/* Coordinates and OCR Buttons */}
       <div className="coordinates">

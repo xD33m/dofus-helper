@@ -15,6 +15,7 @@ type NotificationDetails = {
   distance: string;
   coordinates: string;
   clue: string;
+  placement?: "top" | "bottom";
 };
 
 const Notification: React.FC = () => {

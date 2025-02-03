@@ -42,32 +42,50 @@ function animateWindowY(
 /**
  * Slides in the notification window by animating its y-position from off-screen to FINAL_Y.
  */
-function slideInNotification(window: BrowserWindow, finalY: number, duration: number = ANIMATION_DURATION) {
-  const startY = -window.getBounds().height; // start fully off-screen above
-  animateWindowY(window, startY, finalY, duration, () => {
-    // Animation complete.
-  });
+function slideInNotification(window: BrowserWindow, finalY: number, placement: "top" | "bottom", duration: number = ANIMATION_DURATION) {
+  let startY: number;
+  if (placement === "top") {
+    startY = -window.getBounds().height; // start off-screen above
+  } else {
+    const { height } = screen.getPrimaryDisplay().workAreaSize;
+    startY = height; // start off-screen below
+  }
+  animateWindowY(window, startY, finalY, duration, () => { /* Animation complete */ });
 }
+
 
 /**
  * Slides out the notification window by animating its y-position off-screen.
  */
-function slideOutNotification(window: BrowserWindow, duration: number = ANIMATION_DURATION, onComplete: () => void) {
+function slideOutNotification(window: BrowserWindow, placement: "top" | "bottom", duration: number = ANIMATION_DURATION, onComplete: () => void) {
+  const { height } = screen.getPrimaryDisplay().workAreaSize;
   const startY = window.getBounds().y;
-  const finalY = -window.getBounds().height;
+  let finalY: number;
+  if (placement === "top") {
+    finalY = -window.getBounds().height;
+  } else {
+    finalY = height;
+  }
   animateWindowY(window, startY, finalY, duration, onComplete);
 }
+
 
 /**
  * Creates a new notification window.
  */
-export function createNotificationWindow() {
-  const { width } = screen.getPrimaryDisplay().workAreaSize;
+export function createNotificationWindow(placement: "top" | "bottom" = "top") {
+  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+  let initialY: number;
+  if (placement === "top") {
+    initialY = -NOTIFICATION_HEIGHT;
+  } else {
+    initialY = height; // off-screen below
+  }
   notificationWindow = new BrowserWindow({
     width: NOTIFICATION_WIDTH,
     height: NOTIFICATION_HEIGHT,
     x: width / 2 - NOTIFICATION_WIDTH / 2,
-    y: INITIAL_Y, // start off-screen above
+    y: initialY,
     transparent: true,
     frame: false,
     alwaysOnTop: true,
@@ -90,16 +108,19 @@ export function createNotificationWindow() {
     const notificationHtml = path.join(RENDERER_DIST, "notification.html");
     notificationWindow.loadFile(notificationHtml);
   }
-
   notificationWindow.setMenuBarVisibility(false);
 }
 
 /**
  * Hides the notification window by sliding it out and then closing it.
  */
-function hideNotification() {
+function hideNotification(placement: "top" | "bottom") {
   if (notificationWindow) {
-    slideOutNotification(notificationWindow, ANIMATION_DURATION, () => {
+    if (dismissTimer) {
+      clearTimeout(dismissTimer);
+      dismissTimer = null;
+    }
+    slideOutNotification(notificationWindow, placement, ANIMATION_DURATION, () => {
       notificationWindow!.close();
       notificationWindow = null;
     });
@@ -120,46 +141,39 @@ export function setupNotificationHandlers() {
   });
 
   // Show notification: update content, slide in if needed, and (re)start the auto-dismiss timer.
-  ipcMain.on("show-notification", (event, details) => {
+  ipcMain.on("show-notification", (_event, details) => {
+    const placement: "top" | "bottom" = details.placement || "bottom";
+    const { height } = screen.getPrimaryDisplay().workAreaSize;
+    let finalY: number;
+    if (placement === "top") {
+      finalY = 10;
+    } else {
+      finalY = height - NOTIFICATION_HEIGHT - 10;
+    }
     if (!notificationWindow) {
       pendingNotificationDetails = details;
-      createNotificationWindow();
+      createNotificationWindow(placement);
       notificationWindow!.webContents.once("did-finish-load", () => {
-        slideInNotification(notificationWindow!, FINAL_Y, ANIMATION_DURATION);
+        slideInNotification(notificationWindow!, finalY, placement, ANIMATION_DURATION);
         notificationWindow!.webContents.send("update-notification", details);
         if (dismissTimer) {
           clearTimeout(dismissTimer);
         }
         dismissTimer = setTimeout(() => {
-          hideNotification();
+          hideNotification(placement);
           dismissTimer = null;
         }, DISMISS_DELAY);
       });
     } else {
-      // If the notification window is already open, update its content and reset the dismiss timer.
       notificationWindow.show();
       notificationWindow.webContents.send("update-notification", details);
       if (dismissTimer) {
         clearTimeout(dismissTimer);
       }
       dismissTimer = setTimeout(() => {
-        hideNotification();
+        hideNotification(placement);
         dismissTimer = null;
       }, DISMISS_DELAY);
-    }
-  });
-
-  // In case the renderer (or something else) sends a hide-notification event.
-  ipcMain.on("hide-notification", () => {
-    if (notificationWindow) {
-      if (dismissTimer) {
-        clearTimeout(dismissTimer);
-        dismissTimer = null;
-      }
-      slideOutNotification(notificationWindow, ANIMATION_DURATION, () => {
-        notificationWindow!.close();
-        notificationWindow = null;
-      });
     }
   });
 }

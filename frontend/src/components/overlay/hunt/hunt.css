@@ -274,10 +274,14 @@
 }
 
 /* Notification button */
-.notification {
+.notification-container {
   position: absolute;
   top: 0;
   right: 0;
+  display: flex;
+  flex-direction: column;
+}
+.notification {
   font-size: 15px;
 
   background-color: #46496f3b;
@@ -293,6 +297,19 @@
 
 .notification:hover {
   background-color: #5a5d88;
+  border-radius: 0;
+}
+
+.notification-container:hover .notification-position {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.notification-position {
+  opacity: 0;
+  border-radius: 0 0 0 10px;
+  transform: translateY(-100%);
+  transition: all 0.3s ease;
 }
 
 /* Crop overlay covers the entire screen during selection */

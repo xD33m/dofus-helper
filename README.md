@@ -97,4 +97,4 @@ Prototype, last worked on in February 2025.
 
 ## License
 
-[MIT](LICENSE)
+No license yet: this project was written together with Felix Keller, and a license needs both authors' agreement.
